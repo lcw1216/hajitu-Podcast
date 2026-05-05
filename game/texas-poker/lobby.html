@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>德州扑克 - 游戏大厅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            color: #e0e0e0;
+        }
+
+        .header {
+            background: rgba(30, 30, 30, 0.95);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 40px;
+        }
+
+        .top-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .btn {
+            padding: 20px 50px;
+            background: rgba(40, 40, 40, 0.9);
+            border: 2px solid #333;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            border-color: #4ade80;
+            transform: translateY(-3px);
+        }
+
+        .room-list-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .room-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .room-item {
+            background: rgba(40, 40, 40, 0.9);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .room-item:hover {
+            border-color: #4ade80;
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .room-id {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .room-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .room-status.waiting {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .room-status.playing {
+            background: rgba(251, 146, 60, 0.2);
+            color: #fb923c;
+        }
+
+        .room-players {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .empty-list {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <h1>🃏 德州扑克</h1>
+        </div>
+    </div>
+
+    <div class="main">
+        <h1 class="title">游戏大厅</h1>
+        
+        <div class="top-buttons">
+            <button class="btn" onclick="createRoom()">创建房间</button>
+            <button class="btn" onclick="joinRoom()">加入房间</button>
+        </div>
+
+        <h2 class="room-list-title">房间列表</h2>
+        <div class="room-list" id="roomList">
+            <div class="empty-list">暂无房间</div>
+        </div>
+    </div>
+
+    <script>
+        let rooms = [];
+
+        function createRoom() {
+            const roomId = prompt('请输入房间号:');
+            if (roomId) {
+                rooms.push({
+                    id: roomId,
+                    status: 'waiting',
+                    players: 1
+                });
+                renderRooms();
+                alert('创建房间: ' + roomId);
+            }
+        }
+
+        function joinRoom() {
+            const roomId = prompt('请输入房间号:');
+            if (roomId) {
+                const room = rooms.find(r => r.id === roomId);
+                if (room) {
+                    alert('加入房间: ' + roomId);
+                } else {
+                    alert('房间不存在');
+                }
+            }
+        }
+
+        function renderRooms() {
+            const list = document.getElementById('roomList');
+            if (rooms.length === 0) {
+                list.innerHTML = '<div class="empty-list">暂无房间</div>';
+                return;
+            }
+            
+            list.innerHTML = rooms.map(room => `
+                <div class="room-item" onclick="enterRoom('${room.id}')">
+                    <div class="room-info">
+                        <span class="room-id">房间 ${room.id}</span>
+                        <span class="room-status ${room.status}">${room.status === 'waiting' ? '等待中' : '游戏中'}</span>
+                    </div>
+                    <span class="room-players">${room.players}/8 人</span>
+                </div>
+            `).join('');
+        }
+
+        function enterRoom(roomId) {
+            alert('进入房间: ' + roomId);
+        }
+
+        renderRooms();
+    </script>
+</body>
+</html>
