@@ -30,9 +30,10 @@ body.light-mode .menu a{color: black;}
 body.light-mode {background-color: rgb(240, 240, 240);}
 body.light-mode nav{background-color: rgb(240, 240, 240);}
 body.light-mode .index-left-picture{background-color: rgb(240, 240, 240);color: black;}
-
 body.light-mode .index-art{color: black;} 
 body.light-mode .main-container{color: black;}
+body.light-mode .box{background-color: rgb(241, 238, 198); color: black;}
+body.light-mode .project-file{color: black;}
 .nav-content{
     display: flex;
     flex-direction: column;
