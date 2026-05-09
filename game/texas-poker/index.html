@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>window</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="window">
+        <div class="cross-v"></div>
+        <div class="cross-h"></div>
+        <div class="quadrant quadrant-2">
+            <div class="community-cards">
+                <div class="card">A♠</div>
+                <div class="card">K♦</div>
+            </div>
+            <div class="hand-cards">
+                <div class="card">10♥</div>
+                <div class="card">J♣</div>
+                <div class="card empty"></div>
+                <div class="card empty"></div>
+                <div class="card empty"></div>
+            </div>
+        </div>
+        <div class="quadrant quadrant-1">
+            <div class="player-row">
+                <span class="player-name active">玩家1</span>
+                <span class="status" id="p1-action">跟随</span>
+                <span class="status" id="p1-state">存活</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家2</span>
+                <span class="status" id="p2-action">弃牌</span>
+                <span class="status" id="p2-state">存活</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name empty">玩家3</span>
+                <span class="status" id="p3-action">跟随</span>
+                <span class="status" id="p3-state">出局</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家4</span>
+                <span class="status" id="p4-action">弃牌</span>
+                <span class="status" id="p4-state">存活</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家5</span>
+                <span class="status" id="p5-action">跟随</span>
+                <span class="status" id="p5-state">存活</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家6</span>
+                <span class="status" id="p6-action">弃牌</span>
+                <span class="status" id="p6-state">出局</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家7</span>
+                <span class="status" id="p7-action">跟随</span>
+                <span class="status" id="p7-state">存活</span>
+            </div>
+            <div class="player-row">
+                <span class="player-name">玩家8</span>
+                <span class="status" id="p8-action">弃牌</span>
+                <span class="status" id="p8-state">存活</span>
+            </div>
+        </div>
+        <div class="quadrant quadrant-3">
+            <button class="btn">跟注</button>
+            <button class="btn">加注</button>
+            <button class="btn">让牌</button>
+            <button class="btn">弃牌</button>
+        </div>
+        <div class="quadrant quadrant-4">
+            <div class="chip-row">
+                <span class="chip-label">剩余筹码</span>
+                <span class="chip-value" id="remaining-chips">0</span>
+            </div>
+            <div class="chip-row">
+                <span class="chip-label">当局筹码</span>
+                <span class="chip-value" id="current-chips">0</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

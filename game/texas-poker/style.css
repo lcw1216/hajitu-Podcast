@@ -1,0 +1,164 @@
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 900px;
+            margin: 0;
+            background-color: #030000;
+        }
+        .window {
+            position: relative;
+            border: 3px solid rgb(133, 159, 160);
+            border-radius: 10px;
+            background-color: #2a2a2a;
+            color: white;
+            width: 1280px;
+            height: 720px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .cross-v {
+            position: absolute;
+            left: 960px;
+            top: 0;
+            width: 2px;
+            height: 720px;
+            background-color: rgb(133, 159, 160);
+        }
+        .cross-h {
+            position: absolute;
+            left: 0;
+            top: calc(100% - 144px);
+            width: 1280px;
+            height: 2px;
+            background-color: rgb(133, 159, 160);
+        }
+        .quadrant {
+            position: absolute;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .quadrant-1 {
+            right: 0;
+            top: 0;
+            width: 320px;
+            height: 576px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .player-row {
+            display: flex;
+            gap: 15px;
+            padding: 6px 25px;
+            font-size: 18px;
+            height: calc((576px - 20px) / 8);
+            width: 100%;
+            box-sizing: border-box;
+            align-items: center;
+        }
+        .player-name {
+            color: rgb(133, 159, 160);
+        }
+        .player-name.active {
+            color: #ffffff;
+        }
+        .player-name.empty {
+            color: rgba(133, 159, 160, 0.4);
+        }
+        .status {
+            position: relative;
+            left: 100px;
+            color: white;
+        }
+        .player-row .status:first-of-type {
+            margin-left: auto;
+        }
+        .quadrant-4 {
+            right: 0;
+            bottom: 0;
+            width: 320px;
+            height: 144px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 10px;
+        }
+        .chip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 25px;
+            font-size: 18px;
+        }
+        .chip-label {
+            color: rgb(133, 159, 160);
+        }
+        .chip-value {
+            color: white;
+        }
+        .quadrant-2 {
+            left: 0;
+            top: 0;
+            width: 960px;
+            height: calc(100% - 144px);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+        }
+        .community-cards {
+            display: flex;
+            gap: 15px;
+        }
+        .hand-cards {
+            display: flex;
+            gap: 15px;
+        }
+        .card {
+            width: 70px;
+            height: 100px;
+            border: 2px solid rgb(133, 159, 160);
+            border-radius: 6px;
+            background-color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        .card.empty {
+            border-style: dashed;
+            opacity: 0.3;
+        }
+        .quadrant-3 {
+            left: 0;
+            bottom: 0;
+            width: 960px;
+            height: 144px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .btn {
+            padding: 12px 40px;
+            font-size: 20px;
+            border: 2px solid rgb(133, 159, 160);
+            border-radius: 8px;
+            background-color: #1a1a1a;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #333333;
+        }
+        .btn:active {
+            background-color: rgb(133, 159, 160);
+            color: #030000;
+        }
