@@ -1,0 +1,138 @@
+-- 德州扑克用户数据库脚本 (SQLite 版本)
+-- 创建日期: 2026-05-14
+
+PRAGMA foreign_keys = ON;
+
+-- 创建用户表
+CREATE TABLE IF NOT EXISTS Users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    score INTEGER DEFAULT 1000,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_login_at DATETIME,
+    is_active INTEGER DEFAULT 1
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_users_username ON Users(username);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON Users(is_active);
+
+-- 创建触发器：自动更新 updated_at
+CREATE TRIGGER IF NOT EXISTS trigger_users_updated_at
+AFTER UPDATE ON Users
+FOR EACH ROW
+BEGIN
+    UPDATE Users SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+END;
+
+-- ============================================
+-- 存储过程/函数封装 (SQLite 使用 Python/代码层实现)
+-- ============================================
+
+-- 辅助函数：用户注册验证
+-- 参数：username, password
+-- 返回：result (1=成功, 0=失败), message
+CREATE VIEW IF NOT EXISTS view_register_check AS
+SELECT 
+    CASE 
+        WHEN LENGTH(username) < 3 THEN '用户名至少需要3个字符'
+        WHEN LENGTH(username) > 20 THEN '用户名不能超过20个字符'
+        WHEN LENGTH(password) < 6 THEN '密码至少需要6个字符'
+        WHEN EXISTS (SELECT 1 FROM Users WHERE username = view_register_check.username) THEN '用户名已存在'
+        ELSE 'OK'
+    END AS message
+FROM (SELECT 'dummy' AS username, 'dummy' AS password) AS tmp;
+
+-- 辅助函数：获取用户信息
+-- 参数：user_id
+-- 返回：用户信息
+CREATE VIEW IF NOT EXISTS view_user_info AS
+SELECT 
+    id,
+    username,
+    score,
+    created_at,
+    last_login_at,
+    is_active
+FROM Users
+WHERE is_active = 1;
+
+-- 辅助函数：获取用户排名
+-- 参数：limit 数量
+-- 返回：排名列表
+CREATE VIEW IF NOT EXISTS view_ranking AS
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY score DESC) AS rank,
+    id,
+    username,
+    score,
+    last_login_at
+FROM Users
+WHERE is_active = 1;
+
+-- ============================================
+-- 测试数据 (注释掉，实际使用时取消注释)
+-- ============================================
+
+-- 插入测试用户
+-- INSERT INTO Users (username, password, score) VALUES ('testuser', 'password123', 1000);
+-- INSERT INTO Users (username, password, score) VALUES ('player1', 'pass111', 1500);
+-- INSERT INTO Users (username, password, score) VALUES ('player2', 'pass222', 800);
+
+-- ============================================
+-- Python 后端调用示例
+-- ============================================
+/*
+import sqlite3
+
+# 连接数据库
+conn = sqlite3.connect('texas_poker.db')
+cursor = conn.cursor()
+
+# 1. 用户注册
+def register(username, password):
+    if len(username) < 3 or len(username) > 20:
+        return False, '用户名至少3个字符，不超过20个字符'
+    if len(password) < 6:
+        return False, '密码至少6个字符'
+    
+    try:
+        cursor.execute('INSERT INTO Users (username, password) VALUES (?, ?)', 
+                      (username, password))
+        conn.commit()
+        return True, '注册成功'
+    except sqlite3.IntegrityError:
+        return False, '用户名已存在'
+
+# 2. 用户登录
+def login(username, password):
+    cursor.execute('SELECT id, score FROM Users WHERE username = ? AND password = ? AND is_active = 1',
+                   (username, password))
+    result = cursor.fetchone()
+    if result:
+        cursor.execute('UPDATE Users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?', (result[0],))
+        conn.commit()
+        return True, '登录成功', result[0], result[1]
+    return False, '用户名或密码错误', None, None
+
+# 3. 更新分数
+def update_score(user_id, score_change):
+    cursor.execute('UPDATE Users SET score = score + ? WHERE id = ?', (score_change, user_id))
+    conn.commit()
+    cursor.execute('SELECT score FROM Users WHERE id = ?', (user_id,))
+    return cursor.fetchone()[0]
+
+# 4. 获取排名
+def get_ranking(limit=10):
+    cursor.execute('''
+        SELECT ROW_NUMBER() OVER (ORDER BY score DESC) AS rank, id, username, score
+        FROM Users WHERE is_active = 1
+        ORDER BY score DESC LIMIT ?
+    ''', (limit,))
+    return cursor.fetchall()
+
+# 关闭连接
+conn.close()
+*/

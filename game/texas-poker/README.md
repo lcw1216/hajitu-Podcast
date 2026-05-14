@@ -9,7 +9,9 @@
 ```
 texas-poker/
 ├── index.html          # 游戏前端界面
+├── login-in.html      # 用户登录界面
 ├── style.css          # 样式文件
+├── database.sqlite    # SQLite 数据库初始化脚本
 ├── main.py            # 入口文件
 ├── game.py            # 游戏逻辑
 ├── player.py          # 玩家类
@@ -67,7 +69,13 @@ texas-poker/
 pip install websockets
 ```
 
-### 2. 构建 C++ 引擎
+### 2. 初始化数据库
+
+```bash
+sqlite3 texas_poker.db < database.sqlite
+```
+
+### 3. 构建 C++ 引擎
 
 ```bash
 cd engine
@@ -77,14 +85,14 @@ cmake --build build
 clang++ -shared -fPIC -o hand_eval.dll hand_eval.cpp
 ```
 
-### 3. 运行测试
+### 4. 运行测试
 
 ```bash
 cd engine
 ./test
 ```
 
-### 4. 启动服务器
+### 5. 启动服务器
 
 ```bash
 python main.py

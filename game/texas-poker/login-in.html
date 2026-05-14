@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="window">
+        <div class="login-container">
+            <h2 class="login-title">登录</h2>
+            <form class="login-form" id="loginForm" novalidate>
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username">
+                    <span class="error-msg" id="username-error"></span>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password">
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="切换密码可见性">
+                            <svg class="icon-eye" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <svg class="icon-eye-off" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="error-msg" id="password-error"></span>
+                </div>
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe" name="rememberMe">
+                        <span>记住我</span>
+                    </label>
+                    <a href="#" class="forgot-password">忘记密码？</a>
+                </div>
+                <button type="submit" class="btn login-btn">登录</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var toggleBtn = document.getElementById('togglePassword');
+            var passwordInput = document.getElementById('password');
+            var iconEye = toggleBtn.querySelector('.icon-eye');
+            var iconEyeOff = toggleBtn.querySelector('.icon-eye-off');
+
+            toggleBtn.addEventListener('click', function () {
+                var isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                iconEye.style.display = isPassword ? 'none' : 'block';
+                iconEyeOff.style.display = isPassword ? 'block' : 'none';
+            });
+
+            var form = document.getElementById('loginForm');
+            var usernameInput = document.getElementById('username');
+            var usernameError = document.getElementById('username-error');
+            var passwordError = document.getElementById('password-error');
+
+            function clearErrors() {
+                usernameError.textContent = '';
+                passwordError.textContent = '';
+                usernameInput.classList.remove('input-error');
+                passwordInput.classList.remove('input-error');
+            }
+
+            function validateForm() {
+                var valid = true;
+                clearErrors();
+
+                var username = usernameInput.value.trim();
+                if (!username) {
+                    usernameError.textContent = '请输入用户名';
+                    usernameInput.classList.add('input-error');
+                    valid = false;
+                } else if (username.length < 3) {
+                    usernameError.textContent = '用户名至少3个字符';
+                    usernameInput.classList.add('input-error');
+                    valid = false;
+                } else if (username.length > 20) {
+                    usernameError.textContent = '用户名不超过20个字符';
+                    usernameInput.classList.add('input-error');
+                    valid = false;
+                }
+
+                var password = passwordInput.value;
+                if (!password) {
+                    passwordError.textContent = '请输入密码';
+                    passwordInput.classList.add('input-error');
+                    valid = false;
+                } else if (password.length < 6) {
+                    passwordError.textContent = '密码至少6个字符';
+                    passwordInput.classList.add('input-error');
+                    valid = false;
+                }
+
+                return valid;
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (validateForm()) {
+                    var loginBtn = form.querySelector('.login-btn');
+                    loginBtn.textContent = '登录中...';
+                    loginBtn.disabled = true;
+                    loginBtn.classList.add('btn-loading');
+
+                    setTimeout(function () {
+                        loginBtn.textContent = '登录';
+                        loginBtn.disabled = false;
+                        loginBtn.classList.remove('btn-loading');
+                        alert('登录成功！');
+                    }, 1500);
+                }
+            });
+
+            usernameInput.addEventListener('input', function () {
+                if (usernameInput.classList.contains('input-error')) {
+                    usernameError.textContent = '';
+                    usernameInput.classList.remove('input-error');
+                }
+            });
+
+            passwordInput.addEventListener('input', function () {
+                if (passwordInput.classList.contains('input-error')) {
+                    passwordError.textContent = '';
+                    passwordInput.classList.remove('input-error');
+                }
+            });
+
+            document.querySelector('.forgot-password').addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('忘记密码功能即将上线');
+            });
+        })();
+    </script>
+</body>
+</html>
