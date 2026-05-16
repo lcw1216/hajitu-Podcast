@@ -178,6 +178,46 @@ int eval_hand(const int cards[7]) {
     return best_score.rank;
 }
 
+HandScoreFull eval_hand_full(const int cards[7]) {
+    HandScore best_score;
+    best_score.rank = -1;
+
+    for (int a = 0; a < 3; a++) {
+        for (int b = a + 1; b < 4; b++) {
+            for (int c = b + 1; c < 5; c++) {
+                for (int d = c + 1; d < 6; d++) {
+                    for (int e = d + 1; e < 7; e++) {
+                        int combo[5] = {cards[a], cards[b], cards[c], cards[d], cards[e]};
+                        std::sort(combo, combo + 5,
+                            [](int x, int y) { return card_rank(x) > card_rank(y); });
+                        HandScore sc = eval_5cards(combo);
+                        if (compare_scores(sc, best_score) > 0) {
+                            best_score = sc;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    HandScoreFull result;
+    result.rank = best_score.rank;
+    for (int i = 0; i < 5; i++) {
+        result.kickers[i] = best_score.kickers[i];
+    }
+    return result;
+}
+
+int compare_with_scores(int rank_a, const int kickers_a[5], int rank_b, const int kickers_b[5]) {
+    if (rank_a != rank_b)
+        return rank_a - rank_b;
+    for (int i = 0; i < 5; i++) {
+        if (kickers_a[i] != kickers_b[i])
+            return kickers_a[i] - kickers_b[i];
+    }
+    return 0;
+}
+
 int compare_hands(const int hand_a[7], const int hand_b[7]) {
     HandScore best_a, best_b;
     best_a.rank = -1;

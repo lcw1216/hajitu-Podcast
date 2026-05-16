@@ -20,6 +20,15 @@ int eval_hand(const int cards[7]);
 
 int compare_hands(const int hand_a[7], const int hand_b[7]);
 
+typedef struct {
+    int rank;
+    int kickers[5];
+} HandScoreFull;
+
+HandScoreFull eval_hand_full(const int cards[7]);
+
+int compare_with_scores(int rank_a, const int kickers_a[5], int rank_b, const int kickers_b[5]);
+
 #ifdef __cplusplus
 }
 #endif

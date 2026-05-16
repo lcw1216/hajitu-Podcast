@@ -62,3 +62,4 @@
 ```python
 def unique_sorted(lst: list[int]) -> list[int]:
     return sorted(set(lst))
+

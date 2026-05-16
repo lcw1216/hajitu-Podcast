@@ -2,84 +2,301 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>window</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>德州扑克游戏</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app.js"></script>
 </head>
 <body>
     <div class="window">
         <div class="cross-v"></div>
         <div class="cross-h"></div>
         <div class="quadrant quadrant-2">
-            <div class="community-cards">
-                <div class="card">A♠</div>
-                <div class="card">K♦</div>
+            <div class="community-cards" id="communityCards">
+                <div class="card empty"></div>
+                <div class="card empty"></div>
                 <div class="card empty"></div>
                 <div class="card empty"></div>
                 <div class="card empty"></div>
             </div>
-            <div class="hand-cards">
-                <div class="card">10♥</div>
-                <div class="card">J♣</div>
+            <div class="hand-cards" id="handCards">
+                <div class="card empty">?</div>
+                <div class="card empty">?</div>
             </div>
+            <div class="pot-display" id="potDisplay">底池: 0</div>
         </div>
         <div class="quadrant quadrant-1">
-            <div class="player-row">
-                <span class="player-name active">玩家1</span>
-                <span class="status" id="p1-action">跟随</span>
-                <span class="status" id="p1-state">存活</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家2</span>
-                <span class="status" id="p2-action">弃牌</span>
-                <span class="status" id="p2-state">存活</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name empty">玩家3</span>
-                <span class="status" id="p3-action">跟随</span>
-                <span class="status" id="p3-state">出局</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家4</span>
-                <span class="status" id="p4-action">弃牌</span>
-                <span class="status" id="p4-state">存活</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家5</span>
-                <span class="status" id="p5-action">跟随</span>
-                <span class="status" id="p5-state">存活</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家6</span>
-                <span class="status" id="p6-action">弃牌</span>
-                <span class="status" id="p6-state">出局</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家7</span>
-                <span class="status" id="p7-action">跟随</span>
-                <span class="status" id="p7-state">存活</span>
-            </div>
-            <div class="player-row">
-                <span class="player-name">玩家8</span>
-                <span class="status" id="p8-action">弃牌</span>
-                <span class="status" id="p8-state">存活</span>
+            <div class="player-row" id="playerList">
             </div>
         </div>
         <div class="quadrant quadrant-3">
-            <button class="btn">跟注</button>
-            <button class="btn">加注</button>
-            <button class="btn">让牌</button>
-            <button class="btn">弃牌</button>
+            <button class="btn" id="btnFold" disabled>弃牌</button>
+            <button class="btn" id="btnCheck" disabled>让牌</button>
+            <button class="btn" id="btnCall" disabled>跟注</button>
+            <button class="btn" id="btnRaise" disabled>加注</button>
+            <div class="raise-control" id="raiseControl" style="display:none">
+                <input type="range" id="raiseSlider" min="0" max="1000" value="0">
+                <span id="raiseAmount">0</span>
+            </div>
         </div>
         <div class="quadrant quadrant-4">
             <div class="chip-row">
                 <span class="chip-label">剩余筹码</span>
-                <span class="chip-value" id="remaining-chips">0</span>
+                <span class="chip-value" id="remainingChips">0</span>
             </div>
             <div class="chip-row">
                 <span class="chip-label">当局筹码</span>
-                <span class="chip-value" id="current-chips">0</span>
+                <span class="chip-value" id="currentChips">0</span>
+            </div>
+            <div class="chip-row">
+                <span class="chip-label">当前阶段</span>
+                <span class="chip-value" id="phaseDisplay">等待中</span>
+            </div>
+            <div class="game-controls" style="margin-top: 10px;">
+                <button class="btn" id="btnStartGame">开始游戏</button>
             </div>
         </div>
+        <div class="toast-container" id="toastContainer"></div>
     </div>
+    <script>
+        (function () {
+            const API_BASE = PokerApp.API_BASE;
+            const userId = localStorage.getItem('user_id');
+            const username = localStorage.getItem('username');
+            const roomId = localStorage.getItem('room_id');
+            const wsUrl = "ws://127.0.0.1:9002";
+            let ws = null;
+            let gameState = null;
+            let isMyTurn = false;
+
+            if (!userId || !roomId) {
+                window.location.href = 'room.html';
+                return;
+            }
+
+            const communityCardsEl = document.getElementById('communityCards');
+            const handCardsEl = document.getElementById('handCards');
+            const potDisplayEl = document.getElementById('potDisplay');
+            const playerListEl = document.getElementById('playerList');
+            const remainingChipsEl = document.getElementById('remainingChips');
+            const currentChipsEl = document.getElementById('currentChips');
+            const phaseDisplayEl = document.getElementById('phaseDisplay');
+            const btnFold = document.getElementById('btnFold');
+            const btnCheck = document.getElementById('btnCheck');
+            const btnCall = document.getElementById('btnCall');
+            const btnRaise = document.getElementById('btnRaise');
+            const btnStartGame = document.getElementById('btnStartGame');
+            const raiseControl = document.getElementById('raiseControl');
+            const raiseSlider = document.getElementById('raiseSlider');
+            const raiseAmountEl = document.getElementById('raiseAmount');
+            const toastContainer = document.getElementById('toastContainer');
+
+            const phaseNames = {
+                "idle": "等待中",
+                "preflop": "翻牌前",
+                "flop": "翻牌",
+                "turn": "转牌",
+                "river": "河牌",
+                "showdown": "摊牌"
+            };
+
+            function connectWebSocket() {
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = function() {
+                    const token = localStorage.getItem('token');
+                    ws.send(JSON.stringify({
+                        type: "join",
+                        data: { user_id: parseInt(userId), room_id: roomId, token: token }
+                    }));
+                };
+
+                ws.onmessage = function(event) {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type === "game_state") {
+                        gameState = msg.data;
+                        renderGameState();
+                    } else if (msg.type === "hand_result") {
+                        showHandResult(msg.data);
+                    } else if (msg.type === "error") {
+                        showToast(msg.data.message, 'error');
+                    } else if (msg.type === "joined") {
+                        showToast('已加入游戏', 'success');
+                    }
+                };
+
+                ws.onclose = function() {
+                    showToast('连接断开，5秒后重连...', 'error');
+                    setTimeout(connectWebSocket, 5000);
+                };
+
+                ws.onerror = function() {
+                    showToast('WebSocket连接错误', 'error');
+                };
+            }
+
+            function renderGameState() {
+                if (!gameState) return;
+
+                phaseDisplayEl.textContent = phaseNames[gameState.phase] || gameState.phase;
+                potDisplayEl.textContent = "底池: " + gameState.pot;
+
+                renderCommunityCards(gameState.communityCards);
+                renderPlayerList(gameState.players);
+                updateActionButtons();
+
+                const myPlayer = gameState.players.find(function(p) { return p.id === parseInt(userId); });
+                if (myPlayer) {
+                    remainingChipsEl.textContent = myPlayer.chips;
+                    currentChipsEl.textContent = myPlayer.currentBet;
+                    renderHandCards(myPlayer.hand);
+                }
+            }
+
+            function renderCommunityCards(cards) {
+                const fragment = document.createDocumentFragment();
+                for (let i = 0; i < 5; i++) {
+                    const cardEl = document.createElement('div');
+                    if (i < cards.length) {
+                        const card = cards[i];
+                        cardEl.className = 'card';
+                        cardEl.textContent = card.rank + card.suit;
+                    } else {
+                        cardEl.className = 'card empty';
+                    }
+                    fragment.appendChild(cardEl);
+                }
+                communityCardsEl.innerHTML = '';
+                communityCardsEl.appendChild(fragment);
+            }
+
+            function renderHandCards(hand) {
+                const fragment = document.createDocumentFragment();
+                if (hand && hand.length === 2) {
+                    hand.forEach(function(card) {
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'card';
+                        cardEl.textContent = card.rank + card.suit;
+                        fragment.appendChild(cardEl);
+                    });
+                    handCardsEl.innerHTML = '';
+                    handCardsEl.appendChild(fragment);
+                } else {
+                    handCardsEl.innerHTML = '<div class="card empty">?</div><div class="card empty">?</div>';
+                }
+            }
+
+            function renderPlayerList(players) {
+                const fragment = document.createDocumentFragment();
+                players.forEach(function(player) {
+                    const row = document.createElement('div');
+                    row.className = 'player-row';
+                    if (player.isCurrent) row.classList.add('current-player');
+
+                    const stateText = player.state === 'active' ? '存活' : (player.state === 'folded' ? '弃牌' : '出局');
+                    const actionText = player.action || '-';
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'player-name' + (player.isCurrent ? ' active' : '');
+                    nameSpan.textContent = player.name;
+
+                    const actionSpan = document.createElement('span');
+                    actionSpan.className = 'status';
+                    actionSpan.textContent = actionText;
+
+                    const stateSpan = document.createElement('span');
+                    stateSpan.className = 'status';
+                    stateSpan.textContent = stateText;
+
+                    const chipSpan = document.createElement('span');
+                    chipSpan.className = 'chip-value';
+                    chipSpan.textContent = player.chips;
+
+                    row.appendChild(nameSpan);
+                    row.appendChild(actionSpan);
+                    row.appendChild(stateSpan);
+                    row.appendChild(chipSpan);
+                    fragment.appendChild(row);
+                });
+                playerListEl.innerHTML = '';
+                playerListEl.appendChild(fragment);
+            }
+
+            function updateActionButtons() {
+                if (!gameState) return;
+
+                const myPlayer = gameState.players.find(function(p) { return p.id === parseInt(userId); });
+                isMyTurn = myPlayer && myPlayer.isCurrent && gameState.phase !== 'idle' && gameState.phase !== 'showdown';
+
+                btnFold.disabled = !isMyTurn;
+                btnCheck.disabled = !isMyTurn;
+                btnCall.disabled = !isMyTurn;
+                btnRaise.disabled = !isMyTurn;
+
+                if (isMyTurn) {
+                    const needCall = gameState.currentBet - myPlayer.currentBet;
+                    btnCheck.style.display = needCall === 0 ? 'inline-block' : 'none';
+                    btnCall.style.display = needCall > 0 ? 'inline-block' : 'none';
+                    if (needCall > 0) {
+                        btnCall.textContent = '跟注 ' + needCall;
+                    }
+
+                    const minRaise = gameState.currentBet + gameState.minRaise;
+                    if (myPlayer.chips + myPlayer.currentBet >= minRaise) {
+                        raiseControl.style.display = 'block';
+                        raiseSlider.min = minRaise;
+                        raiseSlider.max = myPlayer.chips + myPlayer.currentBet;
+                        raiseSlider.value = minRaise;
+                        raiseAmountEl.textContent = minRaise;
+                    } else {
+                        raiseControl.style.display = 'none';
+                    }
+                } else {
+                    raiseControl.style.display = 'none';
+                }
+            }
+
+            function sendAction(action, amount) {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                const data = { type: "player_action", data: { action: action } };
+                if (amount) data.data.amount = amount;
+                ws.send(JSON.stringify(data));
+            }
+
+            function showHandResult(data) {
+                let msg = "摊牌结果: ";
+                if (data.winners && data.winners.length > 0) {
+                    const winnerNames = data.winners.map(function(w) {
+                        return "玩家" + w.playerId + " (" + w.handName + ", +" + w.winAmount + ")";
+                    });
+                    msg += winnerNames.join(", ");
+                }
+                showToast(msg, 'success');
+            }
+
+            function showToast(message, type) {
+                PokerApp.showToast(message, type, toastContainer);
+            }
+
+            btnFold.addEventListener('click', function() { sendAction('fold'); });
+            btnCheck.addEventListener('click', function() { sendAction('check'); });
+            btnCall.addEventListener('click', function() { sendAction('call'); });
+            btnRaise.addEventListener('click', function() {
+                const amount = parseInt(raiseSlider.value);
+                sendAction('raise', amount);
+            });
+            btnStartGame.addEventListener('click', function() {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "start_game" }));
+                }
+            });
+
+            raiseSlider.addEventListener('input', function() {
+                raiseAmountEl.textContent = this.value;
+            });
+
+            connectWebSocket();
+        })();
+    </script>
 </body>
 </html>
