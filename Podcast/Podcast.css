@@ -49,7 +49,7 @@ body.light-mode nav { background-color: rgb(240, 240, 240); border-bottom-color:
 body.light-mode .index-left-picture { background-color: rgb(240, 240, 240); color: black; }
 body.light-mode .index-art { color: black; }
 body.light-mode .main-container { color: black; }
-body.light-mode .box { background-color: rgb(241, 238, 198); color: black; border-color: #ccc; }
+body.light-mode .box { background-color: #ffffff; color: black; border-color: #ccc; }
 body.light-mode .project-file-name { color: black; }
 body.light-mode .download-btn { background-color: rgb(52, 120, 246); color: #fff; border-color: rgb(52, 120, 246); }
 body.light-mode .download-btn:hover { background-color: rgb(30, 100, 230); border-color: rgb(30, 100, 230); }
@@ -931,7 +931,7 @@ body.light-mode .acm-back-link {
 }
 
 body.light-mode .acm-auth-box {
-    background-color: rgb(241, 238, 198);
+    background-color: #ffffff;
     border-color: #ccc;
     color: #000;
 }
