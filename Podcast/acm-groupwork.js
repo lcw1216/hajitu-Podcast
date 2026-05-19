@@ -133,6 +133,7 @@
     $('btn-confirm-create').addEventListener('click', createContest);
     $('btn-cancel-create').addEventListener('click', hideCreateContestModal);
     $('btn-back-lobby').addEventListener('click', function() { setHash('lobby'); });
+    $('btn-back-lobby-from-problem').addEventListener('click', function() { setHash('lobby'); });
     $('btn-back-contest').addEventListener('click', function() {
       var parts = getHash();
       if (parts[1]) setHash('contest/' + parts[1]);
@@ -320,7 +321,6 @@
       var isSubmitted = submittedSet[p];
       html += '<div class="acm-problem-card' + (isSubmitted ? ' submitted' : '') + '" data-contest="' + contestId + '" data-problem="' + p + '">';
       html += '<span class="acm-problem-letter">' + p + '</span>';
-      html += '<span class="acm-problem-label">Problem ' + p + '</span>';
       html += '<span class="acm-problem-status">' + (isSubmitted ? '已提交' : '未提交') + '</span>';
       html += '</div>';
     }

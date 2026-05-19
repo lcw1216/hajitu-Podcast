@@ -22,13 +22,13 @@
 
     <div class="main-container" id="app-root">
         <div id="view-login" class="acm-view" style="display:none;">
-            <div class="box acm-auth-box">
+            <div class="acm-auth-box">
                 <h2 class="acm-auth-title" id="auth-title">登录</h2>
                 <div class="acm-auth-form">
                     <input type="text" id="auth-username" class="acm-input" placeholder="用户名" autocomplete="off">
                     <input type="password" id="auth-password" class="acm-input" placeholder="密码" autocomplete="off">
                     <div class="acm-auth-error" id="auth-error"></div>
-                    <button class="acm-btn acm-btn-primary" id="auth-submit-btn">登录</button>
+                    <button class="acm-btn acm-btn-primary acm-auth-btn" id="auth-submit-btn">登录</button>
                     <div class="acm-auth-switch">
                         <span id="auth-switch-text">没有账号？</span>
                         <a href="javascript:void(0)" id="auth-switch-link" class="acm-link">注册</a>
@@ -38,16 +38,13 @@
         </div>
 
         <div id="view-lobby" class="acm-view" style="display:none;">
-            <div class="box acm-lobby-box">
-                <div class="acm-lobby-header">
-                    <h2>比赛大厅</h2>
-                    <div class="acm-lobby-header-right">
-                        <span class="acm-user-badge" id="lobby-username"></span>
-                        <button class="acm-btn acm-btn-sm" id="btn-logout">退出登录</button>
-                    </div>
-                </div>
-                <div class="acm-lobby-toolbar">
-                    <button class="acm-btn acm-btn-primary" id="btn-create-contest">+ 创建新比赛</button>
+            <div class="acm-lobby-box">
+                <div class="acm-topbar">
+                    <span class="acm-topbar-title">比赛大厅</span>
+                    <span class="acm-user-badge" id="lobby-username"></span>
+                    <button class="acm-btn acm-btn-primary acm-btn-sm" id="btn-create-contest">+ 创建新比赛</button>
+                    <div class="acm-topbar-spacer"></div>
+                    <button class="acm-btn acm-btn-sm" id="btn-logout">退出登录</button>
                 </div>
                 <div class="acm-contest-list" id="contest-list">
                     <div class="acm-empty">暂无比赛，点击上方按钮创建一个吧</div>
@@ -56,19 +53,24 @@
         </div>
 
         <div id="view-contest" class="acm-view" style="display:none;">
-            <div class="box acm-contest-box">
-                <div class="acm-contest-header">
+            <div class="acm-contest-box">
+                <div class="acm-topbar">
                     <a href="javascript:void(0)" class="acm-link acm-back-link" id="btn-back-lobby">← 返回比赛大厅</a>
                     <span class="acm-user-badge" id="contest-username"></span>
+                    <div class="acm-topbar-spacer"></div>
                 </div>
                 <h2 class="acm-contest-title" id="contest-title"></h2>
                 <div class="acm-contest-body">
                     <div class="acm-contest-main">
-                        <h3 class="acm-section-title">题目列表</h3>
+                        <div class="acm-section-header">
+                            <h3 class="acm-section-title">A~K 共11道题</h3>
+                        </div>
                         <div class="acm-problem-grid" id="problem-grid"></div>
                     </div>
                     <div class="acm-contest-sidebar">
-                        <h3 class="acm-section-title">更新动态</h3>
+                        <div class="acm-section-header">
+                            <h3 class="acm-section-title">更新动态</h3>
+                        </div>
                         <div class="acm-activity-list" id="activity-list">
                             <div class="acm-empty">暂无动态</div>
                         </div>
@@ -78,10 +80,12 @@
         </div>
 
         <div id="view-problem" class="acm-view" style="display:none;">
-            <div class="box acm-problem-box">
-                <div class="acm-problem-header">
-                    <a href="javascript:void(0)" class="acm-link acm-back-link" id="btn-back-contest">← 返回比赛主页</a>
+            <div class="acm-problem-box">
+                <div class="acm-topbar">
+                    <a href="javascript:void(0)" class="acm-link acm-back-link" id="btn-back-lobby-from-problem">← 返回比赛大厅</a>
                     <span class="acm-user-badge" id="problem-username"></span>
+                    <div class="acm-topbar-spacer"></div>
+                    <a href="javascript:void(0)" class="acm-link acm-back-link" id="btn-back-contest">← 返回比赛主页</a>
                 </div>
                 <div class="acm-problem-title-row">
                     <h2 class="acm-problem-title" id="problem-title"></h2>
