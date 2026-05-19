@@ -1,0 +1,21 @@
+{
+  "name": "acm-groupwork",
+  "version": "1.0.0",
+  "description": "Virtual ACM Contest Code Collaboration Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop acm-groupwork",
+    "pm2:restart": "pm2 restart acm-groupwork",
+    "pm2:logs": "pm2 logs acm-groupwork"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "express": "^4.21.0",
+    "express-session": "^1.18.0"
+  }
+}
