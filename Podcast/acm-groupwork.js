@@ -144,8 +144,7 @@
     $('btn-confirm-delete').addEventListener('click', deleteCode);
     $('btn-cancel-delete').addEventListener('click', hideDeleteConfirm);
     $('branch-select').addEventListener('change', onBranchChange);
-
-    $('lobby-branch-select').addEventListener('change', onLobbyBranchChange);
+    $('contest-branch-select').addEventListener('change', onContestBranchChange);
 
     $('create-contest-modal').addEventListener('click', function(e) {
       if (e.target === this) hideCreateContestModal();
@@ -218,33 +217,9 @@
     stopPolling();
     $('lobby-username').textContent = currentUser ? currentUser.username : '';
 
-    api('/api/users').then(function(usersData) {
-      var users = usersData.users || [];
-      var select = $('lobby-branch-select');
-      select.innerHTML = '';
-
-      var selectedValue = viewingUser || (currentUser ? currentUser.username : null);
-
-      for (var i = 0; i < users.length; i++) {
-        var opt = document.createElement('option');
-        opt.value = users[i].username;
-        opt.textContent = users[i].username;
-        if (users[i].username === selectedValue) opt.selected = true;
-        select.appendChild(opt);
-      }
-
-      if (!viewingUser && currentUser) {
-        viewingUser = currentUser.username;
-      }
-    });
-
     api('/api/contests').then(function(data) {
       renderContestList(data.contests);
     });
-  }
-
-  function onLobbyBranchChange() {
-    viewingUser = $('lobby-branch-select').value;
   }
 
   function renderContestList(contests) {
@@ -317,8 +292,35 @@
       $('contest-title').textContent = data.contest.name;
     });
 
-    loadContestData(contestId);
+    api('/api/users').then(function(usersData) {
+      var users = usersData.users || [];
+      var select = $('contest-branch-select');
+      select.innerHTML = '';
+
+      var selectedValue = viewingUser || (currentUser ? currentUser.username : null);
+
+      for (var i = 0; i < users.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = users[i].username;
+        opt.textContent = users[i].username;
+        if (users[i].username === selectedValue) opt.selected = true;
+        select.appendChild(opt);
+      }
+
+      if (!viewingUser && currentUser) {
+        viewingUser = currentUser.username;
+      }
+
+      loadContestData(contestId);
+    });
+
     activityTimer = setInterval(function() { loadActivities(contestId); }, POLL_INTERVAL);
+  }
+
+  function onContestBranchChange() {
+    viewingUser = $('contest-branch-select').value;
+    var parts = getHash();
+    if (parts[1]) loadContestData(parts[1]);
   }
 
   function loadContestData(contestId) {
