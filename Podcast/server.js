@@ -201,8 +201,8 @@ app.put('/api/contests/:id/submissions/:problem', requireAuth, (req, res) => {
   const userId = req.session.userId;
   const { code } = req.body;
 
-  if (!/^[A-K]$/.test(problem)) {
-    return res.status(400).json({ error: '题目必须是 A-K' });
+  if (!/^[A-L]$/.test(problem)) {
+    return res.status(400).json({ error: '题目必须是 A-L' });
   }
 
   const existing = db.prepare(

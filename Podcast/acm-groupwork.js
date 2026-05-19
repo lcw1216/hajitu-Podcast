@@ -1,5 +1,5 @@
 (function() {
-  var PROBLEMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+  var PROBLEMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
   var POLL_INTERVAL = 12000;
   var activityTimer = null;
   var isRegisterMode = false;
