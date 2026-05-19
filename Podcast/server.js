@@ -159,6 +159,25 @@ app.post('/api/contests', requireAuth, (req, res) => {
   res.json({ success: true, contest });
 });
 
+app.delete('/api/contests/:id', requireAuth, (req, res) => {
+  const contestId = req.params.id;
+  const userId = req.session.userId;
+
+  const contest = db.prepare('SELECT * FROM contests WHERE id = ?').get(contestId);
+  if (!contest) {
+    return res.status(404).json({ error: '比赛不存在' });
+  }
+  if (contest.creator_id !== userId) {
+    return res.status(403).json({ error: '只有创建者可以删除比赛' });
+  }
+
+  db.prepare('DELETE FROM activities WHERE contest_id = ?').run(contestId);
+  db.prepare('DELETE FROM submissions WHERE contest_id = ?').run(contestId);
+  db.prepare('DELETE FROM contests WHERE id = ?').run(contestId);
+
+  res.json({ success: true });
+});
+
 app.get('/api/contests/:id', (req, res) => {
   const contest = db.prepare(`
     SELECT c.*, u.username as creator_name

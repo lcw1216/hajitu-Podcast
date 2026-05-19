@@ -232,11 +232,19 @@
     var html = '';
     for (var i = 0; i < contests.length; i++) {
       var c = contests[i];
+      var isCreator = currentUser && c.creator_id === currentUser.id;
       html += '<div class="acm-contest-card" data-id="' + c.id + '">';
+      html += '<div class="acm-contest-card-left">';
       html += '<div class="acm-contest-card-name">' + escapeHtml(c.name) + '</div>';
       html += '<div class="acm-contest-card-meta">';
       html += '创建者：' + escapeHtml(c.creator_name) + ' · ';
       html += timeAgo(c.created_at);
+      html += '</div>';
+      html += '</div>';
+      html += '<div class="acm-contest-card-right">';
+      if (isCreator) {
+        html += '<button class="acm-btn acm-btn-danger acm-btn-xs btn-delete-contest" data-id="' + c.id + '" data-name="' + escapeHtml(c.name) + '">删除</button>';
+      }
       html += '</div>';
       html += '</div>';
     }
@@ -244,8 +252,25 @@
 
     var cards = container.querySelectorAll('.acm-contest-card');
     for (var j = 0; j < cards.length; j++) {
-      cards[j].addEventListener('click', function() {
+      cards[j].addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-delete-contest')) return;
         setHash('contest/' + this.getAttribute('data-id'));
+      });
+    }
+
+    var delBtns = container.querySelectorAll('.btn-delete-contest');
+    for (var k = 0; k < delBtns.length; k++) {
+      delBtns[k].addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = this.getAttribute('data-id');
+        var name = this.getAttribute('data-name');
+        if (confirm('确定要删除比赛 "' + name + '" 吗？\n该比赛下的所有提交和动态记录将被永久删除，此操作不可撤销。')) {
+          api('/api/contests/' + id, { method: 'DELETE' }).then(function() {
+            showLobby();
+          }).catch(function(err) {
+            alert('删除失败：' + err.message);
+          });
+        }
       });
     }
   }

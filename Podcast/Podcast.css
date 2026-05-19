@@ -410,6 +410,11 @@ body.light-mode p { color: black; }
     font-size: 0.75rem;
 }
 
+.acm-btn-xs {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+}
+
 .acm-link {
     color: rgb(80, 140, 250);
     text-decoration: none;
@@ -572,6 +577,21 @@ body.light-mode p { color: black; }
     background-color: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-1px);
+}
+
+.acm-contest-card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.acm-contest-card-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
 }
 
 .acm-contest-card-name {
