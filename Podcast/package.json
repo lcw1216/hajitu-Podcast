@@ -11,7 +11,7 @@
     "pm2:logs": "pm2 logs acm-groupwork"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
