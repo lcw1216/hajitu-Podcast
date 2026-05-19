@@ -4,6 +4,7 @@
   var activityTimer = null;
   var isRegisterMode = false;
   var currentUser = null;
+  var viewingUser = null;
   var pendingDeleteInfo = null;
 
   function $(id) { return document.getElementById(id); }
@@ -144,6 +145,8 @@
     $('btn-cancel-delete').addEventListener('click', hideDeleteConfirm);
     $('branch-select').addEventListener('change', onBranchChange);
 
+    $('lobby-branch-select').addEventListener('change', onLobbyBranchChange);
+
     $('create-contest-modal').addEventListener('click', function(e) {
       if (e.target === this) hideCreateContestModal();
     });
@@ -215,9 +218,33 @@
     stopPolling();
     $('lobby-username').textContent = currentUser ? currentUser.username : '';
 
+    api('/api/users').then(function(usersData) {
+      var users = usersData.users || [];
+      var select = $('lobby-branch-select');
+      select.innerHTML = '';
+
+      var selectedValue = viewingUser || (currentUser ? currentUser.username : null);
+
+      for (var i = 0; i < users.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = users[i].username;
+        opt.textContent = users[i].username;
+        if (users[i].username === selectedValue) opt.selected = true;
+        select.appendChild(opt);
+      }
+
+      if (!viewingUser && currentUser) {
+        viewingUser = currentUser.username;
+      }
+    });
+
     api('/api/contests').then(function(data) {
       renderContestList(data.contests);
     });
+  }
+
+  function onLobbyBranchChange() {
+    viewingUser = $('lobby-branch-select').value;
   }
 
   function renderContestList(contests) {
@@ -305,7 +332,7 @@
       var submittedSet = {};
       for (var i = 0; i < submissions.length; i++) {
         var s = submissions[i];
-        if (currentUser && s.user_id === currentUser.id && s.code) {
+        if (viewingUser && s.username === viewingUser && s.code) {
           submittedSet[s.problem] = true;
         }
       }
@@ -404,7 +431,7 @@
       var select = $('branch-select');
       select.innerHTML = '';
 
-      var selectedUser = branchUser || (currentUser ? currentUser.username : null);
+      var selectedUser = branchUser || viewingUser || (currentUser ? currentUser.username : null);
 
       for (var i = 0; i < users.length; i++) {
         var opt = document.createElement('option');
