@@ -580,7 +580,7 @@
 
   function stripHtml(text) {
     if (!text) return '';
-    return text.replace(/<[^>]*>/g, '');
+    return text.replace(/<span[^>]*>/gi, '').replace(/<\/span>/gi, '');
   }
 
   init();
