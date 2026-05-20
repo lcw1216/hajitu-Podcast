@@ -517,40 +517,11 @@
         $('code-editor').value = found && found.code ? stripHtml(found.code) : '';
       } else if (found && found.code) {
         $('code-viewer').style.display = '';
-        $('code-viewer').innerHTML = highlightCode(found.code);
+        $('code-viewer').textContent = stripHtml(found.code);
       } else {
         $('code-empty').style.display = '';
       }
     }).catch(function() {});
-  }
-
-  function highlightCode(code) {
-    if (!code) return '';
-    var h = stripHtml(code);
-    h = escapeHtml(h);
-    var ph = {};
-    var pc = 0;
-
-    function extract(regex, wrapper) {
-      h = h.replace(regex, function(m) {
-        var key = '\x00' + (pc++) + '\x00';
-        ph[key] = wrapper ? wrapper(m) : m;
-        return key;
-      });
-    }
-
-    extract(/\/\/[^\n]*/g, function(m) { return '<span class="syn-comment">' + m + '</span>'; });
-    extract(/# [^\n]*/g, function(m) { return '<span class="syn-comment">' + m + '</span>'; });
-    extract(/\/\*[\s\S]*?\*\//g, function(m) { return '<span class="syn-comment">' + m + '</span>'; });
-
-    h = h.replace(/(&quot;(?:[^&"]|&amp;|&lt;|&gt;)*&quot;)/g, '<span class="syn-string">$1</span>');
-    h = h.replace(/(&#39;(?:[^&#39;]|&amp;|&lt;|&gt;)*&#39;)/g, '<span class="syn-string">$1</span>');
-    h = h.replace(/(`(?:[^`]|\\`)*`)/g, '<span class="syn-string">$1</span>');
-    h = h.replace(/\b(\d+\.?\d*)\b/g, '<span class="syn-number">$1</span>');
-    h = h.replace(/\b(include|ifdef|ifndef|endif|pragma|define|typedef|struct|enum|class|namespace|template|typename|virtual|override|constexpr|noexcept|auto|decltype|sizeof|return|if|else|for|while|do|switch|case|break|continue|default|goto|void|int|char|float|double|long|short|unsigned|signed|bool|string|vector|map|set|list|queue|stack|pair|const|static|extern|inline|friend|operator|new|delete|try|catch|throw|public|private|protected|this|true|false|null|NULL|using|namespace|import|export|function|var|let|const|def|class|extends|super|yield|async|await|from|print|import|def|elif|except|finally|pass|raise|with|yield|lambda|range|len|int|str|float|list|dict|tuple|set|bool|None|True|False|and|or|not|is|in|as|assert|del|global|nonlocal|package|interface|implements|extends|abstract|final|synchronized|transient|volatile|native|strictfp|throws|instanceof|module|require|printf|scanf|malloc|calloc|realloc|free|sizeof|typedef|union|volatile|register|restrict)\b/g, '<span class="syn-keyword">$1</span>');
-
-    h = h.replace(/\x00\d+\x00/g, function(m) { return ph[m] || ''; });
-    return h;
   }
 
   function submitCode() {
