@@ -3,12 +3,9 @@ const session = require('express-session');
 const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_MINUTES = 15;
 
 app.set('trust proxy', 1);
 
@@ -21,17 +18,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    password_salt TEXT DEFAULT '',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS auth_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    username TEXT,
-    action TEXT NOT NULL,
-    ip TEXT DEFAULT '',
-    detail TEXT DEFAULT '',
+    password_salt TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -68,47 +55,8 @@ db.exec(`
   );
 `);
 
-(function migrateUserTable() {
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN login_attempts INTEGER DEFAULT 0");
-  } catch(e) {}
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN locked_until DATETIME");
-  } catch(e) {}
-  try {
-    db.exec("ALTER TABLE users ADD COLUMN last_login_at DATETIME");
-  } catch(e) {}
-})();
-
-function authLog(userId, username, action, detail) {
-  try {
-    var ip = '';
-    db.prepare('INSERT INTO auth_logs (user_id, username, action, ip, detail) VALUES (?, ?, ?, ?, ?)').run(userId || null, username || '', action, ip, detail || '');
-  } catch(e) {}
-}
-
-function isBcryptHash(hash) {
-  return hash && (hash.substring(0, 4) === '$2a$' || hash.substring(0, 4) === '$2b$');
-}
-
-function verifyPassword(password, hash, salt) {
-  if (isBcryptHash(hash)) {
-    return bcrypt.compareSync(password, hash);
-  }
-  var oldHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-  return oldHash === hash;
-}
-
-function hashPasswordBcrypt(password) {
-  var salt = bcrypt.genSaltSync(10);
-  return bcrypt.hashSync(password, salt);
-}
-
-function upgradeToBcrypt(userId, password) {
-  try {
-    var newHash = hashPasswordBcrypt(password);
-    db.prepare('UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?').run(newHash, '', userId);
-  } catch(e) {}
+function hashPassword(password, salt) {
+  return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
 }
 
 app.use(express.json({ limit: '10mb' }));
@@ -136,116 +84,57 @@ app.get('/api/me', (req, res) => {
   if (!req.session.userId) {
     return res.json({ user: null });
   }
-  try {
-    var user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.session.userId);
-    res.json({ user: user || null });
-  } catch(e) {
-    res.json({ user: null });
-  }
+  const user = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(req.session.userId);
+  res.json({ user });
 });
 
 app.post('/api/register', (req, res) => {
-  try {
-    var username = (req.body.username || '').trim();
-    var password = req.body.password || '';
-
-    if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
-    }
-    if (username.length < 2) {
-      return res.status(400).json({ error: '用户名至少2个字符' });
-    }
-    if (username.length > 20) {
-      return res.status(400).json({ error: '用户名不能超过20个字符' });
-    }
-    if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
-      return res.status(400).json({ error: '用户名只能包含字母、数字、下划线和中文' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: '密码至少6个字符' });
-    }
-    if (password.length > 100) {
-      return res.status(400).json({ error: '密码不能超过100个字符' });
-    }
-    if (!/[a-zA-Z]/.test(password)) {
-      return res.status(400).json({ error: '密码必须包含至少一个字母' });
-    }
-    if (!/[0-9]/.test(password)) {
-      return res.status(400).json({ error: '密码必须包含至少一个数字' });
-    }
-
-    var existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
-    if (existing) {
-      authLog(null, username, 'register_fail', '用户名已存在');
-      return res.status(400).json({ error: '用户名已存在' });
-    }
-
-    var password_hash = hashPasswordBcrypt(password);
-    var result = db.prepare('INSERT INTO users (username, password_hash, password_salt) VALUES (?, ?, ?)').run(username, password_hash, '');
-    req.session.userId = result.lastInsertRowid;
-    authLog(result.lastInsertRowid, username, 'register_ok', '注册成功');
-    res.json({ success: true, user: { id: result.lastInsertRowid, username: username } });
-  } catch(e) {
-    res.status(500).json({ error: '服务器错误，请稍后重试' });
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: '用户名和密码不能为空' });
   }
+  if (username.trim().length < 2) {
+    return res.status(400).json({ error: '用户名至少2个字符' });
+  }
+  if (password.length < 3) {
+    return res.status(400).json({ error: '密码至少3个字符' });
+  }
+
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username.trim());
+  if (existing) {
+    return res.status(400).json({ error: '用户名已存在' });
+  }
+
+  const salt = crypto.randomBytes(16).toString('hex');
+  const password_hash = hashPassword(password, salt);
+
+  const result = db.prepare('INSERT INTO users (username, password_hash, password_salt) VALUES (?, ?, ?)').run(username.trim(), password_hash, salt);
+  req.session.userId = result.lastInsertRowid;
+  res.json({ success: true, user: { id: result.lastInsertRowid, username: username.trim() } });
 });
 
 app.post('/api/login', (req, res) => {
-  try {
-    var username = (req.body.username || '').trim();
-    var password = req.body.password || '';
-
-    if (!username || !password) {
-      return res.status(400).json({ error: '用户名和密码不能为空' });
-    }
-
-    var user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    if (!user) {
-      authLog(null, username, 'login_fail', '用户不存在');
-      return res.status(400).json({ error: '用户名或密码错误' });
-    }
-
-    if (user.locked_until) {
-      var lockedUntil = new Date(user.locked_until + 'Z');
-      if (!isNaN(lockedUntil.getTime()) && lockedUntil > new Date()) {
-        var remainMin = Math.ceil((lockedUntil - new Date()) / 60000);
-        authLog(user.id, username, 'login_lock', '账号被锁定');
-        return res.status(400).json({ error: '账号已被锁定，请' + remainMin + '分钟后重试' });
-      }
-      db.prepare('UPDATE users SET login_attempts = 0, locked_until = NULL WHERE id = ?').run(user.id);
-    }
-
-    var valid = verifyPassword(password, user.password_hash, user.password_salt);
-    if (!valid) {
-      var attempts = (user.login_attempts || 0) + 1;
-      if (attempts >= MAX_LOGIN_ATTEMPTS) {
-        var lockUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString();
-        db.prepare('UPDATE users SET login_attempts = ?, locked_until = ? WHERE id = ?').run(attempts, lockUntil, user.id);
-        authLog(user.id, username, 'login_lock', '连续' + attempts + '次失败，已锁定' + LOCKOUT_MINUTES + '分钟');
-        return res.status(400).json({ error: '密码错误次数过多，账号已锁定' + LOCKOUT_MINUTES + '分钟' });
-      }
-      db.prepare('UPDATE users SET login_attempts = ? WHERE id = ?').run(attempts, user.id);
-      authLog(user.id, username, 'login_fail', '密码错误，第' + attempts + '次');
-      return res.status(400).json({ error: '用户名或密码错误' });
-    }
-
-    if (isBcryptHash(user.password_hash) === false) {
-      upgradeToBcrypt(user.id, password);
-    }
-
-    db.prepare('UPDATE users SET login_attempts = 0, locked_until = NULL, last_login_at = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
-    req.session.userId = user.id;
-    authLog(user.id, username, 'login_ok', '登录成功');
-    res.json({ success: true, user: { id: user.id, username: user.username } });
-  } catch(e) {
-    res.status(500).json({ error: '服务器错误，请稍后重试' });
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: '用户名和密码不能为空' });
   }
+
+  const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username.trim());
+  if (!user) {
+    return res.status(400).json({ error: '用户名或密码错误' });
+  }
+
+  const hash = hashPassword(password, user.password_salt);
+  if (hash !== user.password_hash) {
+    return res.status(400).json({ error: '用户名或密码错误' });
+  }
+
+  req.session.userId = user.id;
+  res.json({ success: true, user: { id: user.id, username: user.username } });
 });
 
 app.post('/api/logout', (req, res) => {
-  var uid = req.session.userId;
   req.session.destroy(() => {
-    if (uid) authLog(uid, '', 'logout', '退出登录');
     res.json({ success: true });
   });
 });
