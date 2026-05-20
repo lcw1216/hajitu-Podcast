@@ -162,11 +162,15 @@
       $('auth-submit-btn').textContent = '注册';
       $('auth-switch-text').textContent = '已有账号？';
       $('auth-switch-link').textContent = '登录';
+      $('auth-username').placeholder = '用户名（2-20位，字母数字下划线中文）';
+      $('auth-password').placeholder = '密码（至少6位，需含字母和数字）';
     } else {
       $('auth-title').textContent = '登录';
       $('auth-submit-btn').textContent = '登录';
       $('auth-switch-text').textContent = '没有账号？';
       $('auth-switch-link').textContent = '注册';
+      $('auth-username').placeholder = '用户名';
+      $('auth-password').placeholder = '密码';
     }
     $('auth-error').textContent = '';
     $('auth-error').style.display = 'none';
