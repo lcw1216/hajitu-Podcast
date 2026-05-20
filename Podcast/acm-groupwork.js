@@ -528,7 +528,7 @@
     if (!code) return '';
     var h = escapeHtml(code);
     h = h.replace(/(\/\/[^\n]*)/g, '<span class="syn-comment">$1</span>');
-    h = h.replace(/(#[^\n]*)/g, '<span class="syn-comment">$1</span>');
+    h = h.replace(/# [^\n]*/g, '<span class="syn-comment">$&</span>');
     h = h.replace(/\/\*[\s\S]*?\*\//g, function(m) {
       return '<span class="syn-comment">' + m + '</span>';
     });
