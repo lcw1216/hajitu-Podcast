@@ -514,7 +514,7 @@
       if (isMe) {
         $('code-editor').style.display = '';
         $('code-actions').style.display = '';
-        $('code-editor').value = found && found.code ? found.code : '';
+        $('code-editor').value = found && found.code ? stripHtml(found.code) : '';
       } else if (found && found.code) {
         $('code-viewer').style.display = '';
         $('code-viewer').innerHTML = highlightCode(found.code);
@@ -526,7 +526,8 @@
 
   function highlightCode(code) {
     if (!code) return '';
-    var h = escapeHtml(code);
+    var h = stripHtml(code);
+    h = escapeHtml(h);
     var ph = {};
     var pc = 0;
 
@@ -560,7 +561,7 @@
     var qIdx = problem.indexOf('?');
     if (qIdx >= 0) problem = problem.substring(0, qIdx);
 
-    var code = $('code-editor').value;
+    var code = stripHtml($('code-editor').value);
 
     api('/api/contests/' + contestId + '/submissions/' + problem, {
       method: 'PUT',
@@ -604,6 +605,11 @@
   function escapeHtml(text) {
     if (!text) return '';
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function stripHtml(text) {
+    if (!text) return '';
+    return text.replace(/<[^>]*>/g, '');
   }
 
   init();
