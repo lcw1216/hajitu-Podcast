@@ -815,6 +815,11 @@ body.light-mode p { color: black; }
     resize: vertical;
 }
 
+.syn-keyword { color: rgb(80, 180, 255); }
+.syn-string { color: rgb(255, 150, 100); }
+.syn-comment { color: rgb(100, 200, 100); }
+.syn-number { color: rgb(220, 140, 255); }
+
 .acm-code-actions {
     display: flex;
     gap: 0.5rem;
@@ -1021,6 +1026,11 @@ body.light-mode .acm-code-viewer {
 body.light-mode .acm-code-editor {
     color: rgb(40, 40, 40);
 }
+
+body.light-mode .syn-keyword { color: rgb(0, 80, 200); }
+body.light-mode .syn-string { color: rgb(200, 60, 30); }
+body.light-mode .syn-comment { color: rgb(0, 128, 0); }
+body.light-mode .syn-number { color: rgb(180, 20, 180); }
 
 body.light-mode .acm-modal-content p {
     color: rgb(100, 100, 100);
