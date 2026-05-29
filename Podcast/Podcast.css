@@ -46,7 +46,7 @@ body.light-mode .logo { color: black; }
 body.light-mode .menu a { color: black; }
 body.light-mode { background-color: rgb(240, 240, 240); color: black; }
 body.light-mode nav { background-color: rgb(240, 240, 240); border-bottom-color: #ccc; }
-body.light-mode .index-left-picture { background-color: rgb(240, 240, 240); color: black; }
+body.light-mode .index-picture { background-color: rgb(240, 240, 240); }
 body.light-mode .index-art { color: black; }
 body.light-mode .main-container { color: black; }
 body.light-mode .box { background-color: #ffffff; color: black; border-color: #ccc; }
@@ -95,30 +95,33 @@ body.light-mode p { color: black; }
     margin: 0 0.625rem;
 }
 
-/* ========== ASCII 艺术区域 ========== */
-.index-left-picture {
-    flex: 1 1 42%;
-    max-width: 560px;
-    min-width: 280px;
-    overflow: hidden;
+/* ========== 首页图片区域 ========== */
+.index-page .index-picture {
+    position: fixed;
+    top: 4.375rem;
+    left: 0;
+    width: 50%;
+    bottom: 0;
+    overflow: visible;
     border: 0;
     background-color: rgb(26, 29, 36);
-    color: rgb(169, 139, 158);
-    padding: 0.625rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.index-left-picture pre {
-    margin: 0;
-    padding: 0;
-    font-family: monospace;
-    font-size: clamp(0.65rem, 1.35vw, 1.3125rem);
-    letter-spacing: -0.25rem;
-    line-height: 1.08;
-    white-space: pre;
-    overflow: hidden;
-    color: inherit;
-    background: transparent;
+.index-page .index-picture img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: center;
     border: none;
+    outline: none;
+    box-shadow: none;
+    transform: scale(1.2);
+    margin-left: 200px;
 }
 
 /* ========== 主内容区 ========== */
@@ -133,13 +136,24 @@ body.light-mode p { color: black; }
     padding: 0 1.25rem;
 }
 
-.index-content {
-    flex: 1 1 42%;
-    min-width: 280px;
+.index-page .main-container {
+    padding: 0;
+    gap: 0;
+    max-width: 100%;
+}
+
+.index-page .index-content {
+    position: fixed;
+    top: 4.375rem;
+    right: 0;
+    width: 50%;
+    bottom: 0;
     padding: 1.25rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .index-art {
@@ -270,22 +284,21 @@ body.light-mode p { color: black; }
         padding: 0 0.625rem;
     }
 
-    .index-left-picture {
-        flex: 1 1 auto;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
+    .index-page .main-container {
+        padding: 0;
+        gap: 0;
     }
 
-    .index-left-picture pre {
-        font-size: clamp(0.55rem, 2.2vw, 0.9rem);
-        letter-spacing: -0.15rem;
+    .index-page .index-picture {
+        top: 3.75rem;
+        width: 50%;
+        bottom: 0;
     }
 
-    .index-content {
-        flex: 1 1 auto;
-        width: 100%;
-        min-width: 0;
+    .index-page .index-content {
+        top: 3.75rem;
+        width: 50%;
+        bottom: 0;
         text-align: center;
     }
 
@@ -339,9 +352,16 @@ body.light-mode p { color: black; }
         margin: 0 0.4rem;
     }
 
-    .index-left-picture pre {
-        font-size: clamp(0.5rem, 2.8vw, 0.75rem);
-        letter-spacing: -0.12rem;
+    .index-page .index-picture {
+        top: 3.125rem;
+        width: 50%;
+        bottom: 0;
+    }
+
+    .index-page .index-content {
+        top: 3.125rem;
+        width: 50%;
+        bottom: 0;
     }
 
     .index-art {

@@ -52,11 +52,16 @@
                 <span class="chip-label">当前阶段</span>
                 <span class="chip-value" id="phaseDisplay">等待中</span>
             </div>
-            <div class="game-controls" style="margin-top: 10px;">
-                <button class="btn" id="btnStartGame">开始游戏</button>
-            </div>
         </div>
         <div class="toast-container" id="toastContainer"></div>
+        <div class="result-overlay" id="resultOverlay" style="display:none">
+            <div class="result-content">
+                <h2 class="result-title">摊牌结果</h2>
+                <div id="resultWinners"></div>
+                <div id="resultPlayers"></div>
+                <button class="btn" id="btnDismissResult">关闭</button>
+            </div>
+        </div>
     </div>
     <script>
         (function () {
@@ -85,7 +90,6 @@
             const btnCheck = document.getElementById('btnCheck');
             const btnCall = document.getElementById('btnCall');
             const btnRaise = document.getElementById('btnRaise');
-            const btnStartGame = document.getElementById('btnStartGame');
             const raiseControl = document.getElementById('raiseControl');
             const raiseSlider = document.getElementById('raiseSlider');
             const raiseAmountEl = document.getElementById('raiseAmount');
@@ -264,14 +268,39 @@
             }
 
             function showHandResult(data) {
-                let msg = "摊牌结果: ";
+                var winnersEl = document.getElementById('resultWinners');
+                var playersEl = document.getElementById('resultPlayers');
+
+                var wHtml = '<h3 class="result-section">赢家</h3>';
                 if (data.winners && data.winners.length > 0) {
-                    const winnerNames = data.winners.map(function(w) {
-                        return "玩家" + w.playerId + " (" + w.handName + ", +" + w.winAmount + ")";
+                    data.winners.forEach(function(w) {
+                        wHtml += '<div class="result-winner">';
+                        wHtml += '<span class="result-player-name">' + (w.playerId === parseInt(userId) ? '你' : '玩家' + w.playerId) + '</span>';
+                        wHtml += '<span class="result-hand-name">' + (w.handName || '自动获胜') + '</span>';
+                        wHtml += '<span class="result-win-amount">+' + w.winAmount + '</span>';
+                        wHtml += '</div>';
                     });
-                    msg += winnerNames.join(", ");
                 }
-                showToast(msg, 'success');
+                winnersEl.innerHTML = wHtml;
+
+                var pHtml = '<h3 class="result-section">所有手牌</h3>';
+                if (data.players && data.players.length > 0) {
+                    data.players.forEach(function(p) {
+                        pHtml += '<div class="result-player' + (p.handRank < 0 ? ' result-auto-win' : '') + '">';
+                        pHtml += '<span class="result-player-name">' + (p.playerId === parseInt(userId) ? '你' : '玩家' + p.playerId) + '</span>';
+                        if (p.hand && p.hand.length > 0) {
+                            pHtml += '<span class="result-hand-cards">';
+                            p.hand.forEach(function(c) {
+                                pHtml += c.rank + c.suit + ' ';
+                            });
+                            pHtml += '</span>';
+                        }
+                        pHtml += '<span class="result-hand-name">' + (p.handName || '—') + '</span>';
+                        pHtml += '</div>';
+                    });
+                }
+                playersEl.innerHTML = pHtml;
+                document.getElementById('resultOverlay').style.display = 'flex';
             }
 
             function showToast(message, type) {
@@ -285,10 +314,9 @@
                 const amount = parseInt(raiseSlider.value);
                 sendAction('raise', amount);
             });
-            btnStartGame.addEventListener('click', function() {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: "start_game" }));
-                }
+
+            document.getElementById('btnDismissResult').addEventListener('click', function() {
+                document.getElementById('resultOverlay').style.display = 'none';
             });
 
             raiseSlider.addEventListener('input', function() {

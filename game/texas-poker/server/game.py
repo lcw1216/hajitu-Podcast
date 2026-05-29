@@ -6,6 +6,7 @@ from hand_eval import eval_hand_full, compare_with_scores, get_hand_name
 logger = logging.getLogger(__name__)
 
 PHASES = ["idle", "preflop", "flop", "turn", "river", "showdown"]
+MIN_PLAYERS = 2
 
 
 class GameState:
@@ -28,6 +29,7 @@ class GameState:
         self.deck = None
         self._acted_count = 0
         self.last_raise_amount = big_blind
+        self._pending_hand_result = None
 
     def _log_action(self, player_id, action, amount=0):
         if self.log_callback:
@@ -199,7 +201,11 @@ class GameState:
         else:
             self._move_to_next_player()
 
-        return self.get_state()
+        result = self.get_state()
+        if self._pending_hand_result:
+            result["hand_result"] = self._pending_hand_result
+            self._pending_hand_result = None
+        return result
 
     def _is_betting_round_over(self):
         active_players = [p for p in self.players if p.is_active()]
@@ -227,13 +233,15 @@ class GameState:
 
         phase_idx = PHASES.index(self.phase)
         if phase_idx >= len(PHASES) - 1:
-            self._showdown()
+            self._pending_hand_result = self._showdown()
+            self._reset_for_new_hand()
             return
 
         next_phase = PHASES[phase_idx + 1]
 
         if next_phase == "showdown":
-            self._showdown()
+            self._pending_hand_result = self._showdown()
+            self._reset_for_new_hand()
             return
 
         self.phase = next_phase
@@ -435,3 +443,24 @@ class GameState:
 
     def get_player_count(self):
         return len([p for p in self.players if not p.is_out()])
+
+    def _reset_for_new_hand(self):
+        for p in self.players:
+            p.hand = []
+            p.current_bet = 0
+            p.total_bet = 0
+            p.action = ""
+            p.has_acted = False
+            p.is_current = False
+            if p.state == "folded":
+                p.state = "active"
+            if p.chips <= 0 and p.state != "out":
+                p.state = "out"
+        self.community_cards = []
+        self.pot = 0
+        self.current_bet = 0
+        self.min_raise = self.big_blind
+        self.last_raise_amount = self.big_blind
+        self.deck = None
+        self._acted_count = 0
+        self.phase = "idle"

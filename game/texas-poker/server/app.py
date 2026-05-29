@@ -4,7 +4,6 @@ import os
 import uuid
 import re
 import html
-import bcrypt
 import contextlib
 import threading
 import datetime as dt
@@ -204,14 +203,12 @@ def register(request):
     if len(password) > 128:
         raise BadRequestError("password must be at most 128 characters")
 
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
     if cursor.fetchone():
         raise BadRequestError("registration failed")
-    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+    cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
     conn.commit()
     user_id = cursor.lastrowid
     return Response.json({"ok": True, "user_id": user_id, "username": username}, status_code=201)
@@ -236,8 +233,7 @@ def login(request):
     if not user:
         raise UnauthorizedError("invalid username or password")
 
-    stored_hash = user["password"]
-    if not bcrypt.checkpw(data["password"].encode("utf-8"), stored_hash.encode("utf-8")):
+    if user["password"] != data["password"]:
         raise UnauthorizedError("invalid username or password")
 
     token = str(uuid.uuid4())

@@ -710,3 +710,81 @@
                 padding: 14px 16px;
             }
         }
+        .result-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .result-content {
+            background-color: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            border-radius: 10px;
+            padding: 30px;
+            min-width: 360px;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .result-title {
+            text-align: center;
+            margin: 0 0 20px 0;
+            color: var(--text-primary);
+            font-size: 28px;
+            letter-spacing: 4px;
+        }
+        .result-section {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin: 16px 0 8px 0;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .result-winner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 6px;
+            margin-bottom: 4px;
+        }
+        .result-player {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            border-bottom: 1px solid rgba(133, 159, 160, 0.2);
+        }
+        .result-player-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .result-hand-cards {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .result-hand-name {
+            color: var(--success-color);
+            font-weight: 500;
+        }
+        .result-win-amount {
+            color: var(--success-color);
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .result-auto-win {
+            opacity: 0.5;
+        }
+        .result-content .btn {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 40px;
+        }

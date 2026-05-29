@@ -3,7 +3,7 @@ import json
 import logging
 import signal
 import websockets
-from game import GameState
+from game import GameState, MIN_PLAYERS
 from app import log_game_action, verify_token
 import config
 
@@ -107,20 +107,16 @@ async def handle_client(websocket, path=None):
                         "data": {"room_id": room_id, "player_id": player_id},
                     })
 
+                    state = game.get_state(requesting_player_id=player_id)
+                    await send_message(websocket, state)
+
                     await broadcast_state(room_id, exclude=player_id)
 
-                elif msg_type == "start_game":
-                    if not room_id or not manager.get_game(room_id):
-                        await send_error(websocket, "Not in a room")
-                        continue
-
-                    game = manager.get_game(room_id)
-                    try:
+                    active_count = game.get_player_count()
+                    if active_count >= MIN_PLAYERS:
                         game.start_game()
-                    except ValueError as e:
-                        await send_error(websocket, str(e))
-                        continue
-                    await broadcast_state(room_id)
+                        logger.info(f"Auto-start game in room {room_id} with {active_count} players")
+                        await broadcast_state(room_id)
 
                 elif msg_type == "player_action":
                     if not room_id or not manager.get_game(room_id):
@@ -146,8 +142,16 @@ async def handle_client(websocket, path=None):
 
                     await broadcast_state(room_id)
 
-                    if game.phase == "showdown" and result.get("type") == "hand_result":
-                        await broadcast_message(room_id, result)
+                    hand_result = result.get("hand_result") if isinstance(result, dict) else None
+                    if hand_result:
+                        logger.info(f"Hand result in room {room_id}: {len(hand_result.get('data', {}).get('winners', []))} winners")
+                        await broadcast_message(room_id, hand_result)
+
+                        active_count = game.get_player_count()
+                        if active_count >= MIN_PLAYERS:
+                            game.start_game()
+                            logger.info(f"Auto-start next hand in room {room_id}")
+                            await broadcast_state(room_id)
 
                 else:
                     await send_error(websocket, f"Unknown message type: {msg_type}")

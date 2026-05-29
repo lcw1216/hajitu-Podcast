@@ -138,15 +138,13 @@
                     loginBtn.disabled = true;
                     loginBtn.classList.add('btn-loading');
 
-                    sha256(passwordInput.value).then(function(hashedPassword) {
-                        return fetch(API_BASE + '/api/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                username: usernameInput.value.trim(),
-                                password: hashedPassword
-                            })
-                        });
+                    fetch(API_BASE + '/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: usernameInput.value.trim(),
+                            password: passwordInput.value
+                        })
                     })
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
@@ -217,15 +215,13 @@
                 regBtn.textContent = '注册中...';
                 regBtn.disabled = true;
 
-                sha256(password).then(function(hashedPassword) {
-                    return fetch(API_BASE + '/api/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: username,
-                            password: hashedPassword
-                        })
-                    });
+                fetch(API_BASE + '/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
                 })
                 .then(function(res) { return res.json(); })
                 .then(function(data) {
