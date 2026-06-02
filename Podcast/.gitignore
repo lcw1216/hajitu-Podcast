@@ -1,5 +1,9 @@
 node_modules/
 acm.db
+acm.db-shm
+acm.db-wal
+acm.db-journal
 logs/
 *.log
 .env
+package-lock.json
