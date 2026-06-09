@@ -6,6 +6,19 @@ ccr-config.json
 start-claude-deepseek.ps1
 .claude-code-proxy.env
 
+# SSH 私钥（必须忽略）
+# PEM 文件包含私钥，泄露后他人可登录服务器
+*.pem
+/id_rsa
+/id_rsa.pub
+/id_dsa
+/id_dsa.pub
+/id_ecdsa
+/id_ecdsa.pub
+/id_ed25519
+/id_ed25519.pub
+/.ssh/
+
 # SSH 信息（敏感配置）
 /ssh-information.md
 
