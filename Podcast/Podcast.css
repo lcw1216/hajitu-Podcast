@@ -95,6 +95,18 @@ body.light-mode p { color: black; }
     margin: 0 0.625rem;
 }
 
+.menu a.active {
+    color: rgb(80, 140, 250);
+    font-weight: 600;
+}
+
+.menu a:hover {
+    color: rgb(80, 140, 250);
+}
+
+body.light-mode .menu a.active { color: rgb(52, 120, 246); }
+body.light-mode .menu a:hover { color: rgb(52, 120, 246); }
+
 /* ========== 首页图片区域 ========== */
 .index-page .index-picture {
     position: fixed;
