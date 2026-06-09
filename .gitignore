@@ -1,0 +1,14 @@
+# ============================================
+# Claude Code + DeepSeek 凭据（必须忽略）
+# ============================================
+# DeepSeek API key 已写入这些文件，禁止入库
+ccr-config.json
+start-claude-deepseek.ps1
+.claude-code-proxy.env
+
+# 常见本地凭据文件
+.env
+.env.local
+*.env
+secrets.json
+credentials.json
