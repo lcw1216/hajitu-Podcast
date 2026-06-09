@@ -6,6 +6,9 @@ ccr-config.json
 start-claude-deepseek.ps1
 .claude-code-proxy.env
 
+# SSH 信息（敏感配置）
+/ssh-information.md
+
 # 常见本地凭据文件
 .env
 .env.local
