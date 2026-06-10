@@ -1,4 +1,0 @@
-2026/06/09 22:45:35 [crit] 6679#0: *13 stat() "/root/hajitu-podcast/" failed (13: Permission denied), client: 127.0.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
-2026/06/09 22:45:35 [crit] 6679#0: *13 stat() "/root/hajitu-podcast/" failed (13: Permission denied), client: 127.0.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
-2026/06/09 22:45:35 [crit] 6679#0: *19 stat() "/root/hajitu-podcast/" failed (13: Permission denied), client: 127.0.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
-2026/06/09 22:45:35 [crit] 6679#0: *19 stat() "/root/hajitu-podcast/" failed (13: Permission denied), client: 127.0.0.1, server: _, request: "GET / HTTP/1.1", host: "localhost"
