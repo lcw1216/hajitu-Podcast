@@ -1,6 +1,3 @@
-#!/bin/bash
-# map - 启动 Nginx 服务
-# 用法: bash start.sh
 
 SERVICE="nginx"
 

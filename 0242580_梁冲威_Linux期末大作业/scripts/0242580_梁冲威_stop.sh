@@ -1,7 +1,3 @@
-#!/bin/bash
-# map - 停止 Nginx 服务
-# 用法: bash stop.sh
-
 SERVICE="nginx"
 
 if ! systemctl is-active --quiet $SERVICE; then

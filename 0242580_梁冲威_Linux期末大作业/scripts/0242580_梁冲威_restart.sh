@@ -1,6 +1,4 @@
-#!/bin/bash
-# map - 重启 Nginx 服务（含配置检查）
-# 用法: bash restart.sh
+
 
 SERVICE="nginx"
 
