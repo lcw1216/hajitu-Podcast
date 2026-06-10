@@ -57,7 +57,7 @@
                 overflow: hidden;
                 transition: max-height 0.25s ease;
             }
-            .ps-group.open > .ps-subitems { max-height: 31.25rem; }
+            .ps-group.open > .ps-subitems { max-height: 62.5rem; }
 
             .ps-subitems li a {
                 display: block;
@@ -206,15 +206,17 @@
                     <div class="ps-group-label">哈基图的题单</div>
                     <ul class="ps-subitems">
                         <li><a href="#basic-algo" class="ps-cat-link active" data-target="basic-algo">基础算法</a></li>
+                        <li><a href="#prefix-sum" class="ps-cat-link" data-target="prefix-sum">前缀和</a></li>
+                        <li><a href="#diff" class="ps-cat-link" data-target="diff">差分</a></li>
+                        <li><a href="#dsu" class="ps-cat-link" data-target="dsu">并查集</a></li>
                     </ul>
                 </div>
             </aside>
 
             <main class="ps-main">
-                <!-- 基础算法区（默认显示）—— 只包含 problem-set.md 中的内容 -->
+                <!-- 基础算法区（默认显示） -->
                 <section class="ps-section" id="basic-algo">
                     <h1 class="ps-title">基础算法</h1>
-
                     <div class="ps-card open">
                         <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
                             <span class="ps-name"><span class="ps-icon">✎</span>基础算法</span>
@@ -227,56 +229,68 @@
                             </div>
                         </div>
                     </div>
+                </section>
 
+                <!-- 前缀和区 -->
+                <section class="ps-section" id="prefix-sum" style="display:none;">
+                    <h1 class="ps-title">前缀和</h1>
                     <div class="ps-card open">
                         <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
                             <span class="ps-name"><span class="ps-icon">✎</span>前缀和</span>
                             <span class="ps-toggle">▾</span>
                         </div>
                         <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ba-002">
+                            <div class="ps-problem" data-id="ps-001">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text">买花：<a href="http://47.121.118.174/p/170" target="_blank">hydro</a></span>
                             </div>
-                            <div class="ps-problem" data-id="ba-003">
+                            <div class="ps-problem" data-id="ps-002">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text">二维前缀和：<a href="http://47.121.118.174/p/42" target="_blank">hydro</a></span>
                             </div>
-                            <div class="ps-problem" data-id="ba-004">
+                            <div class="ps-problem" data-id="ps-003">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text">闪耀的灯光：<a href="http://47.121.118.174/p/617" target="_blank">hydro</a></span>
                             </div>
-                            <div class="ps-problem" data-id="ba-005">
+                            <div class="ps-problem" data-id="ps-004">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P13879" target="_blank">P13879 luogu</a></span>
                             </div>
                         </div>
                     </div>
+                </section>
 
+                <!-- 差分区 -->
+                <section class="ps-section" id="diff" style="display:none;">
+                    <h1 class="ps-title">差分</h1>
                     <div class="ps-card open">
                         <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
                             <span class="ps-name"><span class="ps-icon">✎</span>差分</span>
                             <span class="ps-toggle">▾</span>
                         </div>
                         <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ba-006">
+                            <div class="ps-problem" data-id="df-001">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P10903" target="_blank">P10903 luogu</a></span>
                             </div>
                         </div>
                     </div>
+                </section>
 
+                <!-- 并查集区 -->
+                <section class="ps-section" id="dsu" style="display:none;">
+                    <h1 class="ps-title">并查集</h1>
                     <div class="ps-card open">
                         <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
                             <span class="ps-name"><span class="ps-icon">✎</span>并查集</span>
                             <span class="ps-toggle">▾</span>
                         </div>
                         <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ba-007">
+                            <div class="ps-problem" data-id="ds-001">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text">传送阵：<a href="http://47.121.118.174/p/608" target="_blank">hydro</a></span>
                             </div>
-                            <div class="ps-problem" data-id="ba-008">
+                            <div class="ps-problem" data-id="ds-002">
                                 <span class="ps-dot dim">✓</span>
                                 <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P1536" target="_blank">P1536 luogu</a></span>
                             </div>
