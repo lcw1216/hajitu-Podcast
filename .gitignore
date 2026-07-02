@@ -27,6 +27,9 @@ hajitu.conf
 # 临时笔记
 /start_claude.md
 
+# Linux期末大作业（已本地删除）
+# /0242580_梁冲威_Linux期末大作业/
+
 # 常见本地凭据文件
 .env
 .env.local
