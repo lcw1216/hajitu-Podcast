@@ -1,4 +1,3 @@
-update 阅读根目录的ssh.md然后登录我的远程服务器，根据Podcast中的problem-set.md的内容修改problem-set.html,保持格式一致
 ## 基础算法
 等和三分划分方案数 hydro http://47.121.118.174/p/513
 ## 前缀和
