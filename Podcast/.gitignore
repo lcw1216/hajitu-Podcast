@@ -7,3 +7,5 @@ logs/
 *.log
 .env
 package-lock.json
+
+acm.db.bak
