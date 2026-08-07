@@ -705,7 +705,16 @@
                 loadAccount();
                 loadHistory();
                 if (messagesEl.children.length === 0) {
-                    addSys('欢迎使用 CF-AI 刷题助手！<br>📌 输入数字操作：<br>1️⃣ 抽一道新题<br>2️⃣ 生成代码<br>3️⃣ 提交测评<br>4️⃣ 给提示<br>5️⃣ 重复显示题面<br><br>也可以直接描述思路和我讨论~');
+                    var welcome = addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n\n也可以直接描述你的思路，我们一起讨论~');
+                    // 给 AI 首条消息加操作按钮
+                    var actions = document.createElement('div');
+                    actions.className = 'cf-msg-actions';
+                    var btn = document.createElement('button');
+                    btn.className = 'cf-inline-btn';
+                    btn.textContent = '🎲 抽一道新题';
+                    btn.addEventListener('click', function () { pickRandom(); });
+                    actions.appendChild(btn);
+                    welcome.msg.appendChild(actions);
                 }
             });
         })();
