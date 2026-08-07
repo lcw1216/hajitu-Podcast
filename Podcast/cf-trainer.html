@@ -485,7 +485,8 @@
                                     if (payload2 === '[DONE]') return;
                                     try {
                                         var j = JSON.parse(payload2);
-                                        if (j.error) { acc = '❌ ' + j.error; }
+                                        if (j.sessionId) { state.sessionId = j.sessionId; }
+                                        else if (j.error) { acc = '❌ ' + j.error; }
                                         else if (j.delta) { acc += j.delta; }
                                     } catch (e) { /* ignore */ }
                                 });

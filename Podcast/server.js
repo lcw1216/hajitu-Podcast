@@ -464,6 +464,8 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
 
   try {
     let full = '';
+    // 先发送会话 id（前端用于保持历史上下文）
+    res.write(`data: ${JSON.stringify({ sessionId: sid })}\n\n`);
     await cf.aiStream(messages, (delta) => {
       full += delta;
       res.write(`data: ${JSON.stringify({ delta })}\n\n`);
