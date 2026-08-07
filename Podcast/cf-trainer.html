@@ -103,6 +103,28 @@
         .cf-msg pre code { background: none; padding: 0; }
         .cf-msg b { color: rgb(80,140,250); }
 
+        /* 代码块复制按钮 */
+        .cf-code-block { position: relative; margin: 0.4rem 0; }
+        .cf-code-block pre { margin: 0; }
+        .cf-code-copy {
+            position: absolute;
+            top: 0.35rem;
+            right: 0.35rem;
+            padding: 0.15rem 0.55rem;
+            font-size: 0.7rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.5);
+            color: rgb(200,200,200);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 2;
+        }
+        .cf-code-block:hover .cf-code-copy { opacity: 1; }
+        .cf-code-copy:hover { background: rgb(80,140,250); color: #fff; }
+        .cf-code-copy.copied { opacity: 1; background: rgb(80,200,100); color: #fff; border-color: rgb(80,200,100); }
+
         /* 消息内操作按钮（提交确认） */
         .cf-msg-actions { display: flex; gap: 0.4rem; margin-top: 0.5rem; flex-wrap: wrap; }
         .cf-inline-btn {
@@ -317,7 +339,7 @@
                 var s = esc(text);
                 s = renderLatex(s);
                 s = s.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
-                    return '<pre><code>' + esc(code) + '</code></pre>';
+                    return '<div class="cf-code-block"><button class="cf-code-copy">📋 复制</button><pre><code>' + esc(code) + '</code></pre></div>';
                 });
                 s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
                 s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
@@ -537,6 +559,27 @@
                 try { document.execCommand('copy'); } catch (e) {}
                 document.body.removeChild(ta);
             }
+
+            // 代码块复制按钮（事件委托：动态内容也能生效）
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest ? e.target.closest('.cf-code-copy') : null;
+                if (!btn) return;
+                var block = btn.parentElement;
+                var codeEl = block ? block.querySelector('pre code') : null;
+                if (!codeEl) return;
+                var code = codeEl.textContent || '';
+                var done = function () {
+                    btn.textContent = '✅ 已复制';
+                    btn.classList.add('copied');
+                    setTimeout(function () { btn.textContent = '📋 复制'; btn.classList.remove('copied'); }, 1500);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(code).then(done).catch(function () { fallbackCopy(code); done(); });
+                } else {
+                    fallbackCopy(code);
+                    done();
+                }
+            });
 
             // 命令 3：给出 CF 提交页链接 + 复制代码
             function confirmSubmit() {
