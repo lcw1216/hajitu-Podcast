@@ -38,17 +38,6 @@
         .cf-topbar .cf-top-title { font-weight: 600; font-size: 1rem; color: #fff; }
         .cf-topbar .cf-top-sub { font-size: 0.72rem; color: rgb(140,140,140); }
         .cf-topbar .cf-spacer { flex: 1; }
-        .cf-cf-badge {
-            display: inline-flex; align-items: center; gap: 0.35rem;
-            font-size: 0.75rem; padding: 0.3rem 0.7rem;
-            border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
-            color: rgb(173,173,173); cursor: pointer;
-            background: transparent; transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .cf-cf-badge.bound { border-color: rgba(80,200,100,0.4); color: rgb(80,200,100); }
-        .cf-cf-badge:hover { background: rgba(255,255,255,0.06); }
-        .cf-cf-badge.unbind { border-color: rgba(250,80,80,0.4); color: rgb(250,80,80); }
 
         /* ===== 消息区 ===== */
         .cf-messages {
@@ -214,7 +203,6 @@
         body.light-mode .cf-msg code, body.light-mode .cf-msg pre { background: rgba(0,0,0,0.06); }
         body.light-mode .cf-input-area { background-color: #fff; border-color: #ccc; }
         body.light-mode .cf-input-area textarea { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.12); color: #000; }
-        body.light-mode .cf-cf-badge { color: rgb(100,100,100); border-color: rgba(0,0,0,0.15); }
         body.light-mode .cf-statement { background: rgba(0,0,0,0.03); color: rgb(60,60,60); }
         body.light-mode .cf-problem-chip { background: rgba(52,120,246,0.1); }
     </style>
@@ -246,7 +234,6 @@
                     <div class="cf-top-sub" id="cf-top-sub">输入 1~4 或直接聊天</div>
                 </div>
                 <div class="cf-spacer"></div>
-                <button class="cf-cf-badge" id="cf-cf-badge">🔗 绑定 CF 账号</button>
             </div>
 
             <!-- 消息区 -->
@@ -268,22 +255,6 @@
             <div class="cf-statement" id="cf-statement-body">加载中...</div>
             <div class="acm-modal-actions">
                 <button class="acm-btn" onclick="document.getElementById('cf-statement-modal').style.display='none'">关闭</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- CF 账号绑定弹窗 -->
-    <div id="cf-account-modal" class="acm-modal" style="display:none;">
-        <div class="acm-modal-overlay" onclick="document.getElementById('cf-account-modal').style.display='none'"></div>
-        <div class="acm-modal-content box acm-modal-sm">
-            <h3>绑定 Codeforces 账号</h3>
-            <p>用于代提交代码测评，密码将加密存储，不会明文保存。</p>
-            <input type="text" id="cf-acct-user" class="acm-input" placeholder="CF 用户名" autocomplete="off">
-            <input type="password" id="cf-acct-pass" class="acm-input" placeholder="CF 密码" autocomplete="off">
-            <div class="acm-modal-error" id="cf-acct-error" style="display:none;"></div>
-            <div class="acm-modal-actions">
-                <button class="acm-btn acm-btn-primary" id="cf-acct-save">保存</button>
-                <button class="acm-btn" onclick="document.getElementById('cf-account-modal').style.display='none'">取消</button>
             </div>
         </div>
     </div>
@@ -406,49 +377,6 @@
                 });
             }
 
-            // ===== CF 账号（顶部徽章） =====
-            function loadAccount() {
-                api('/api/cf/account').then(function (d) {
-                    var badge = $('cf-cf-badge');
-                    if (d.bound) {
-                        badge.textContent = '🔗 ' + d.cfUsername;
-                        badge.classList.add('bound');
-                        badge.classList.remove('unbind');
-                        badge.title = '已绑定 CF 账号，点击解绑';
-                    } else {
-                        badge.textContent = '🔗 绑定 CF 账号';
-                        badge.classList.remove('bound');
-                        badge.classList.add('unbind');
-                        badge.title = '';
-                    }
-                });
-            }
-
-            $('cf-cf-badge').addEventListener('click', function () {
-                api('/api/cf/account').then(function (d) {
-                    if (d.bound) {
-                        if (!confirm('确定解绑 CF 账号 ' + d.cfUsername + ' ？')) return;
-                        api('/api/cf/account', { method: 'DELETE' }).then(loadAccount);
-                    } else {
-                        $('cf-account-modal').style.display = 'flex';
-                    }
-                });
-            });
-
-            $('cf-acct-save').addEventListener('click', function () {
-                var u = $('cf-acct-user').value.trim(), p = $('cf-acct-pass').value;
-                var err = $('cf-acct-error');
-                if (!u || !p) { err.style.display = ''; err.textContent = '用户名和密码不能为空'; return; }
-                api('/api/cf/account', { method: 'POST', body: { cfUsername: u, cfPassword: p } }).then(function (d) {
-                    if (d.error) { err.style.display = ''; err.textContent = d.error; return; }
-                    $('cf-account-modal').style.display = 'none';
-                    $('cf-acct-user').value = '';
-                    $('cf-acct-pass').value = '';
-                    loadAccount();
-                    addSys('✅ CF 账号绑定成功');
-                });
-            });
-
             // ===== 抽题（无设置，直接随机） =====
             function pickRandom() {
                 api('/api/cf/random').then(function (d) {
@@ -558,65 +486,80 @@
                     });
             }
 
-            // AI 代码块下的操作按钮（聊天内提交确认，非独立按钮）
+            // AI 代码块下的操作按钮：一键复制代码 + 跳转 CF 提交页
             function renderSubmitActions(msgEl, code) {
                 var actions = document.createElement('div');
                 actions.className = 'cf-msg-actions';
-                var btn = document.createElement('button');
-                btn.className = 'cf-inline-btn green';
-                btn.textContent = '📤 提交到 CF 测评';
-                btn.addEventListener('click', function () { confirmSubmit(btn); });
-                actions.appendChild(btn);
+                // 复制代码
+                var copyBtn = document.createElement('button');
+                copyBtn.className = 'cf-inline-btn green';
+                copyBtn.textContent = '📋 复制代码';
+                copyBtn.addEventListener('click', function () { copyCode(code, copyBtn); });
+                actions.appendChild(copyBtn);
+                // 跳转 CF 提交页
+                if (state.current) {
+                    var linkBtn = document.createElement('a');
+                    linkBtn.className = 'cf-inline-btn';
+                    linkBtn.textContent = '🔗 去 CF 提交';
+                    linkBtn.href = 'https://codeforces.com/problemset/submit/' + state.current.contestId + '/' + state.current.index;
+                    linkBtn.target = '_blank';
+                    linkBtn.rel = 'noopener';
+                    actions.appendChild(linkBtn);
+                }
                 msgEl.appendChild(actions);
             }
 
-            function confirmSubmit(btn) {
+            // 一键复制代码到剪贴板
+            function copyCode(code, btn) {
+                var done = function () {
+                    if (btn) {
+                        var old = btn.textContent;
+                        btn.textContent = '✅ 已复制';
+                        btn.disabled = true;
+                        setTimeout(function () { btn.textContent = old; btn.disabled = false; }, 1500);
+                    }
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(code).then(done).catch(function () { fallbackCopy(code); done(); });
+                } else {
+                    fallbackCopy(code);
+                    done();
+                }
+            }
+
+            function fallbackCopy(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (e) {}
+                document.body.removeChild(ta);
+            }
+
+            // 命令 3：给出 CF 提交页链接 + 复制代码
+            function confirmSubmit() {
                 if (!state.current) { addSys('⚠️ 请先抽题'); return; }
                 if (!state.lastCode) { addSys('⚠️ 还没有代码，输入 2 生成代码'); return; }
-                if (btn) btn.disabled = true;
-                var confirmRow = addMsg('ai', '确认将以上代码提交到 Codeforces 测评吗？');
+                var link = 'https://codeforces.com/problemset/submit/' + state.current.contestId + '/' + state.current.index;
+                var m = addMsg('ai', '📤 请前往 Codeforces 提交页面粘贴代码并提交：\n\n🔗 ' + link);
                 var actions = document.createElement('div');
                 actions.className = 'cf-msg-actions';
-                var yes = document.createElement('button');
-                yes.className = 'cf-inline-btn green';
-                yes.textContent = '✅ 确认提交';
-                yes.addEventListener('click', function () { doSubmit(); });
-                var no = document.createElement('button');
-                no.className = 'cf-inline-btn red';
-                no.textContent = '取消';
-                no.addEventListener('click', function () { confirmRow.msg.remove(); addSys('已取消提交'); });
-                actions.appendChild(yes);
-                actions.appendChild(no);
-                confirmRow.msg.appendChild(actions);
-            }
-
-            function doSubmit() {
-                if (!state.current || !state.lastCode) return;
-                addSys('⏳ 正在提交到 Codeforces...');
-                api('/api/cf/submit', {
-                    method: 'POST',
-                    body: {
-                        contestId: state.current.contestId,
-                        index: state.current.index,
-                        code: state.lastCode,
-                        language: 'cpp20'
-                    }
-                }).then(function (d) {
-                    if (d.error) { addSys('⚠️ 提交失败：' + d.error); return; }
-                    addSys('📤 已提交，提交号 ' + d.submissionId + '，正在轮询结果...');
-                    state.submissionTimer = setInterval(function () { pollSubmission(d.localId); }, 5000);
-                });
-            }
-
-            function pollSubmission(localId) {
-                api('/api/cf/submission/' + localId).then(function (d) {
-                    if (d.error) return;
-                    if (d.verdict === 'PENDING') return;
-                    clearInterval(state.submissionTimer);
-                    state.submissionTimer = null;
-                    var cn = ({ 'OK': '✅ 通过', 'WRONG_ANSWER': '❌ 答案错误', 'TIME_LIMIT_EXCEEDED': '⏱ 超时', 'MEMORY_LIMIT_EXCEEDED': '🧠 超内存', 'RUNTIME_ERROR': '💥 运行错误', 'COMPILATION_ERROR': '🔧 编译错误' })[d.verdict] || d.verdict;
-                    addSys('🏁 测评结果：' + cn + (d.time ? '（' + d.time + ' / ' + d.memory + '）' : ''));
-                });
+                var copyBtn = document.createElement('button');
+                copyBtn.className = 'cf-inline-btn green';
+                copyBtn.textContent = '📋 复制代码';
+                copyBtn.addEventListener('click', function () { copyCode(state.lastCode, copyBtn); });
+                actions.appendChild(copyBtn);
+                var goBtn = document.createElement('a');
+                goBtn.className = 'cf-inline-btn';
+                goBtn.textContent = '🔗 打开 CF 提交页';
+                goBtn.href = link;
+                goBtn.target = '_blank';
+                goBtn.rel = 'noopener';
+                actions.appendChild(goBtn);
+                m.msg.appendChild(actions);
+                addSys('💡 提交后可以回来告诉我结果，或继续讨论');
             }
 
             // ===== 数字命令 =====
@@ -631,7 +574,7 @@
                 if (t === '3') {
                     if (!state.current) { addSys('⚠️ 请先输入 1 抽一道题'); return true; }
                     if (!state.lastCode) { addSys('⚠️ 还没有生成代码，先输入 2 让 AI 生成代码'); return true; }
-                    confirmSubmit(null);
+                    confirmSubmit();
                     return true;
                 }
                 if (t === '4') {
@@ -694,7 +637,6 @@
 
             // ===== 初始化（无需登录） =====
             setupIdentity();
-            loadAccount();
             loadHistory();
             if (messagesEl.children.length === 0) {
                 addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n\n也可以直接描述你的思路，我们一起讨论~');
