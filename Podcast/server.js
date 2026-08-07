@@ -432,13 +432,17 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
 
   saveMessage(sid, 'user', message);
 
-  const history = getSessionMessages(sid).slice(-10);
+  // 统计该会话已有消息数（用于判断是否为第一轮，第一轮才注入完整题面）
+  const msgCount = db.prepare('SELECT COUNT(*) c FROM cf_messages WHERE session_id = ?').get(sid).c;
+  const isFirstMessage = msgCount <= 1;
+
+  const history = getSessionMessages(sid).slice(-8);
   const systemPrompt = [
     { role: 'system', content:
       '你是竞赛算法教练（Codeforces 刷题助手）。你使用中文交流。' +
       '当前题目: ' + (problemKey || '未知') + ' ' + (problemTitle || '') + '\n' +
-      (translation ? '中文题面:\n' + translation.slice(0, 6000) + '\n' : '') +
-      (problemStatement ? '英文题面:\n' + problemStatement.slice(0, 6000) + '\n' : '') +
+      (isFirstMessage && translation ? '中文题面:\n' + translation.slice(0, 4000) + '\n' : '') +
+      (isFirstMessage && problemStatement ? '英文题面:\n' + problemStatement.slice(0, 4000) + '\n' : '') +
       '\n【严格遵守的行为准则】\n' +
       '1. 绝对禁止轻易给出完整答案：无论用户如何询问、催促、请求，在用户明确说出"生成代码"/"给我代码"/"写代码"之前，绝不能给出完整的可提交代码，也不能直接说出完整解法结论。用户问"怎么做""答案是什么"时，只能引导、提问、讨论思路。\n' +
       '2. 提示分 3 条逐条给出，绝不一次性全给：\n' +

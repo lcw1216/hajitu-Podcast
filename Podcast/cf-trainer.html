@@ -268,7 +268,7 @@
                     div.appendChild(r);
                 }
                 var body = document.createElement('div');
-                body.innerHTML = content === '' ? '<span class="cf-loading"></span>' : renderMarkdown(content);
+                body.innerHTML = content === '' ? '<span class="cf-loading"></span> <span style="font-size:0.8rem;color:rgb(120,120,120);">AI 思考中...</span>' : renderMarkdown(content);
                 div.appendChild(body);
                 messagesEl.appendChild(div);
                 messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -427,13 +427,15 @@
 
             // ===== 对话（SSE 流式） =====
             function sendToAi(text) {
+                // 立即反馈：先显示用户消息 + AI 思考中（不等任何异步）
+                inputEl.value = '';
+                addMsg('user', esc(text));
+                var aiBody = addMsg('ai', '');
+                state.streaming = true;
+                $('cf-send').disabled = true;
+
                 ensureLogin().then(function (user) {
-                    if (!user) return;
-                    inputEl.value = '';
-                    addMsg('user', esc(text));
-                    var aiBody = addMsg('ai', '');
-                    state.streaming = true;
-                    $('cf-send').disabled = true;
+                    if (!user) { state.streaming = false; $('cf-send').disabled = false; return; }
                     var payload = {
                         message: text,
                         problemKey: state.current.key,

@@ -178,16 +178,22 @@ async function fetchProblemStatement(contestId, index) {
   return body || '（未能解析题面，请访问原题链接查看）';
 }
 
-// ============ 4. AI 调用（流式） ============
+// ============ 4. AI 调用（流式，keep-alive 连接复用） ============
+const http = require('http');
+const https = require('https');
+// 复用 keep-alive agent，避免每次调用重新 TLS 握手
+const aiAgent = new https.Agent({ keepAlive: true, maxSockets: 8, keepAliveMsecs: 60000 });
+const aiFetchOpts = (extra) => Object.assign({ dispatcher: aiAgent }, extra);
+
 async function aiStream(messages, onDelta) {
-  const res = await fetch(`${CF_AI_BASE_URL}/chat/completions`, {
+  const res = await fetch(`${CF_AI_BASE_URL}/chat/completions`, aiFetchOpts({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CF_AI_APIKEY
     },
     body: JSON.stringify({ model: CF_AI_MODEL, messages, stream: true })
-  });
+  }));
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new Error(`AI 调用失败: HTTP ${res.status} ${errText.slice(0, 200)}`);
@@ -221,14 +227,14 @@ async function aiStream(messages, onDelta) {
 }
 
 async function aiChat(messages) {
-  const res = await fetch(`${CF_AI_BASE_URL}/chat/completions`, {
+  const res = await fetch(`${CF_AI_BASE_URL}/chat/completions`, aiFetchOpts({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CF_AI_APIKEY
     },
     body: JSON.stringify({ model: CF_AI_MODEL, messages })
-  });
+  }));
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new Error(`AI 调用失败: HTTP ${res.status} ${errText.slice(0, 200)}`);
