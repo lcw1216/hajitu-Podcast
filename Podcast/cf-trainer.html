@@ -31,7 +31,13 @@
         .cf-problem-card .cf-p-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
         .cf-p-tag { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(255,255,255,0.08); color: rgb(173,173,173); }
         .cf-empty { text-align: center; color: rgb(120,120,120); padding: 1.5rem 0.5rem; font-size: 0.85rem; }
-        .cf-statement { max-height: 24rem; overflow-y: auto; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: rgb(200,200,200); background: rgba(0,0,0,0.25); border-radius: 0.5rem; padding: 0.75rem; }
+        .cf-statement { max-height: 60vh; overflow-y: auto; font-size: 0.9rem; line-height: 1.7; word-break: break-word; color: rgb(200,200,200); background: rgba(0,0,0,0.25); border-radius: 0.5rem; padding: 1rem 1.25rem; }
+        .cf-statement h2, .cf-statement h3 { font-size: 1rem; margin: 0.8rem 0 0.4rem; color: rgb(220,220,220); }
+        .cf-statement p { margin: 0.4rem 0; }
+        .cf-statement pre { background: rgba(0,0,0,0.45); padding: 0.6rem 0.8rem; border-radius: 0.375rem; overflow-x: auto; font-size: 0.8rem; margin: 0.4rem 0; }
+        .cf-statement code { background: rgba(0,0,0,0.35); padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-size: 0.85rem; }
+        .cf-statement sub { font-size: 0.72em; }
+        .cf-statement sup { font-size: 0.72em; }
         .cf-verdict { font-size: 0.8rem; padding: 0.25rem 0.6rem; border-radius: 0.25rem; }
         .cf-verdict.OK { background: rgba(80,200,100,0.15); color: rgb(80,200,100); }
         .cf-verdict.bad { background: rgba(250,80,80,0.15); color: rgb(250,80,80); }
@@ -274,8 +280,38 @@
                 return body;
             }
 
+            // ===== LaTeX 渲染：$...$ → HTML（上下标/符号/分数） =====
+            function renderLatex(text) {
+                return text.replace(/\$\$([\s\S]+?)\$\$|\$([^$]+?)\$/g, function (m, block, inline) {
+                    var expr = (block || inline || '').trim();
+                    var out = expr
+                        // 下标的字母组合 a_{ij}
+                        .replace(/([A-Za-z0-9])\s*_\s*\{([^}]+)\}/g, '$1<sub>$2</sub>')
+                        .replace(/([A-Za-z0-9])\s*_\s*([A-Za-z0-9])/g, '$1<sub>$2</sub>')
+                        // 上标 a^{b}
+                        .replace(/([A-Za-z0-9])\s*\^\s*\{([^}]+)\}/g, '$1<sup>$2</sup>')
+                        .replace(/([A-Za-z0-9])\s*\^\s*([A-Za-z0-9])/g, '$1<sup>$2</sup>')
+                        // 分数 \frac{a}{b}
+                        .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '<span style="display:inline-block;text-align:center;vertical-align:middle;"><span style="display:block;border-bottom:1px solid currentColor;padding:0 3px;">$1</span><span style="display:block;padding:0 3px;">$2</span></span>')
+                        // 数学符号
+                        .replace(/\\le\b/g, '≤').replace(/\\geq\b/g, '≥').replace(/\\lt\b/g, '&lt;').replace(/\\gt\b/g, '&gt;')
+                        .replace(/\\neq\b/g, '≠').replace(/\\approx\b/g, '≈').replace(/\\times\b/g, '×')
+                        .replace(/\\cdot\b/g, '·').replace(/\\dots\b/g, '…').replace(/\\ldots\b/g, '…')
+                        .replace(/\\pm\b/g, '±').replace(/\\infty\b/g, '∞').replace(/\\in\b/g, '∈')
+                        .replace(/\\bmod\b/g, ' mod ').replace(/\\pmod\{([^}]*)\}/g, ' (mod $1)')
+                        .replace(/\\sum\b/g, 'Σ').replace(/\\prod\b/g, '∏').replace(/\\sqrt\b/g, '√')
+                        .replace(/\\to\b/g, '→').replace(/\\rightarrow\b/g, '→').replace(/\\leftarrow\b/g, '←')
+                        .replace(/\\le\s|\\leq\s/g, '≤ ').replace(/\\ge\s|\\geq\s/g, '≥ ')
+                        // 转义字符
+                        .replace(/\\_/g, '_').replace(/\\%/g, '%').replace(/\\\$/g, '$').replace(/\\([a-zA-Z]+)/g, '$1');
+                    return out;
+                });
+            }
+
             function renderMarkdown(text) {
                 var s = esc(text);
+                // 先渲染 LaTeX（放在 esc 之后，因为 esc 不会破坏 $ 符号）
+                s = renderLatex(s);
                 // 代码块
                 s = s.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
                     return '<pre>' + esc(code) + '</pre>';
@@ -336,7 +372,9 @@
                         if (d.problem.statementZh) {
                             state.translation = d.problem.statementZh;
                             $('cf-view-statement').style.display = '';
-                            addMsg('ai', '📖 **题目：' + d.problem.key + ' - ' + d.problem.name + '（' + d.problem.rating + '）**\n\n' + d.problem.statementZh.slice(0, 3000));
+                            addMsg('ai', '📖 **题目：' + d.problem.key + ' - ' + d.problem.name + '（' + d.problem.rating + '）**');
+                            // 自动弹出题面窗口
+                            openStatementModal();
                         } else {
                             addMsg('sys', '抽到题目：' + d.problem.name + '（' + d.problem.rating + '）。点击「🔗 打开原题」在新标签页查看。');
                         }
@@ -375,13 +413,20 @@
                 });
             }
 
-            $('cf-view-statement').addEventListener('click', function () {
+            // ===== 打开题面窗口（专门窗口显示完整题面） =====
+            function openStatementModal() {
                 if (!state.current) { alert('请先抽题'); return; }
                 var modal = $('cf-statement-modal');
-                $('cf-stmt-title').textContent = state.current.key + ' - ' + state.current.name;
-                $('cf-statement-body').textContent = state.translation || state.statementEn || '加载中...';
+                $('cf-stmt-title').textContent = state.current.key + ' - ' + state.current.name +
+                    (state.current.rating ? '（难度 ' + state.current.rating + '）' : '');
+                var content = state.translation || state.statementEn || '';
+                // 渲染 Markdown + LaTeX，代码块用 pre
+                var html = renderMarkdown(content);
+                $('cf-statement-body').innerHTML = html;
                 modal.style.display = 'flex';
-            });
+            }
+
+            $('cf-view-statement').addEventListener('click', openStatementModal);
 
             // ===== 标签筛选 =====
             var chips = document.querySelectorAll('.cf-chip');
