@@ -70,7 +70,7 @@ async function fetchLuogu(key) {
   return await res.text();
 }
 
-// 解析 HTML → { statementZh, samples }
+// 解析 HTML -> { statementZh, samples }
 function parseLuogu(html) {
   const stmt = { desc: '', input: '', output: '', hint: '' };
   // 按 section 解析
@@ -107,7 +107,7 @@ function parseLuogu(html) {
   if (samples.length) {
     md += '## 样例\n\n';
     samples.forEach((s, i) => {
-      md += `**样例 ${i + 1}**\n\n输入：\n\`\`\`\n${s[0].trim()}\n\`\`\`\n\n输出：\n\`\`\`\n${s[1].trim()}\n\`\`\`\n\n`;
+      md += '**样例 ' + (i + 1) + '**\n\n输入：\n```\n' + s[0].trim() + '\n```\n\n输出：\n```\n' + s[1].trim() + '\n```\n\n';
     });
   }
   if (stmt.hint) md += '## 说明/提示\n\n' + stmt.hint + '\n\n';
@@ -130,14 +130,15 @@ async function main() {
       insert.run(p.key, p.contestId, p.index, p.name, p.rating || null,
         JSON.stringify(p.tags || []), p.link, statementZh, JSON.stringify(samples));
       ok++;
-      console.log(`[${i + 1}/${todo.length}] ${p.key} ${p.name} ✅ 题面 ${statementZh.length} 字, 样例 ${samples.length} 组`);
+      console.log('[' + (i + 1) + '/' + todo.length + '] ' + p.key + ' ' + p.name + ' [OK] 题面 ' + statementZh.length + ' 字, 样例 ' + samples.length + ' 组');
     } catch (e) {
       fail++;
-      console.log(`[${i + 1}/${todo.length}] ${p.key} ${p.name} ❌ ${e.message}`);
+      console.log('[' + (i + 1) + '/' + todo.length + '] ' + p.key + ' ' + p.name + ' [FAIL] ' + e.message);
     }
     await sleep(800); // 限速，防被封
   }
-  console.log(`\n完成: 成功 ${ok}, 失败 ${fail}, 数据库总计 ${db.prepare('SELECT COUNT(*) c FROM cf_problems').get().c} 题`);
+  console.log('');
+  console.log('完成: 成功 ' + ok + ', 失败 ' + fail + ', 数据库总计 ' + db.prepare('SELECT COUNT(*) c FROM cf_problems').get().c + ' 题');
 }
 
 main().catch(e => { console.error('致命错误:', e); process.exit(1); });
