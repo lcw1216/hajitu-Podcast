@@ -1113,3 +1113,75 @@ body.light-mode .acm-modal-content p {
         gap: 0.5rem;
     }
 }
+
+/* ========== 手机端适配（仅 <768px 生效，不影响 PC 端） ========== */
+
+/* 首页：手机改为上下堆叠布局（PC 保持左右分屏 fixed 布局不变） */
+@media (max-width: 768px) {
+    .index-page .index-picture {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: 100%;
+        height: 45vh;
+        bottom: auto;
+    }
+
+    .index-page .index-picture img {
+        margin-left: 0;
+        transform: none;
+    }
+
+    .index-page .index-content {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 100%;
+        bottom: auto;
+        padding: 1rem 1.25rem 2.5rem;
+    }
+}
+
+/* 导航栏：小屏允许换行居中、加大点击区域 */
+@media (max-width: 480px) {
+    .menu {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.25rem;
+        margin-top: 0.75rem;
+    }
+
+    .menu a {
+        margin: 0;
+        padding: 0.4rem 0.55rem;
+        min-height: 2.5rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    body {
+        padding-top: 9.5rem;
+    }
+}
+
+/* ACM 页：小屏细节调整 */
+@media (max-width: 480px) {
+    .acm-topbar {
+        gap: 0.5rem;
+    }
+
+    .acm-code-viewer,
+    .acm-code-editor {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .acm-modal-content {
+        width: 92%;
+    }
+
+    .acm-problem-letter {
+        font-size: 1.1rem;
+    }
+}
