@@ -422,8 +422,13 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
   if (!message || !message.trim()) return res.status(400).json({ error: '消息不能为空' });
 
   let sid = sessionId;
-  let session = sid ? getCfSession(req.session.userId, sid) : getCfSession(req.session.userId);
-  if (!session) {
+  let session = null;
+  // 仅当前端明确传入 sessionId 时才复用已有会话；否则新建会话
+  if (sid) {
+    session = getCfSession(req.session.userId, sid);
+    if (!session) sid = null;
+  }
+  if (!sid) {
     const r = db.prepare('INSERT INTO cf_sessions (user_id, problem_key, title) VALUES (?, ?, ?)')
       .run(req.session.userId, problemKey || null, problemTitle || null);
     sid = r.lastInsertRowid;
