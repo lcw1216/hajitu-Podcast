@@ -2,6 +2,7 @@
 // 用法: node cf-crawl.js [limit]  (limit 可选，测试用)
 const Database = require('better-sqlite3');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const DB_PATH = path.join(__dirname, 'cf-trainer.db');
 const DATA_PATH = path.join(__dirname, 'problem-set-data.json');
@@ -57,17 +58,15 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 async function fetchLuogu(key) {
   const pid = 'CF' + key; // luogu 的 CF 题号格式 CF1157E
   const url = `https://www.luogu.com.cn/problem/${pid}?_contentOnly=1`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': UA,
-      'Referer': 'https://www.luogu.com.cn/',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-    },
-    redirect: 'follow',
-    timeout: 25000
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return await res.text();
+  // Node fetch 与 luogu TLS 不兼容，改用系统 curl（服务器上已验证可用）
+  const html = execFileSync('curl', [
+    '-sL', '--max-time', '25',
+    '-A', UA,
+    '-H', 'Referer: https://www.luogu.com.cn/',
+    '-c', '/tmp/lg-cookie.txt', '-b', '/tmp/lg-cookie.txt',
+    url
+  ], { encoding: 'utf8', timeout: 30000 });
+  return html;
 }
 
 // 解析 HTML -> { statementZh, samples }
