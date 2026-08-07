@@ -178,7 +178,7 @@ async function fetchProblemStatement(contestId, index) {
   return body || '（未能解析题面，请访问原题链接查看）';
 }
 
-// ============ 4. AI 调用（流式） ============
+// ============ 4. AI 调用（流式，禁用思考加速响应） ============
 async function aiStream(messages, onDelta) {
   const res = await fetch(`${CF_AI_BASE_URL}/chat/completions`, {
     method: 'POST',
@@ -186,7 +186,7 @@ async function aiStream(messages, onDelta) {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CF_AI_APIKEY
     },
-    body: JSON.stringify({ model: CF_AI_MODEL, messages, stream: true })
+    body: JSON.stringify({ model: CF_AI_MODEL, messages, stream: true, thinking: { type: 'disabled' } })
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
@@ -227,7 +227,7 @@ async function aiChat(messages) {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + CF_AI_APIKEY
     },
-    body: JSON.stringify({ model: CF_AI_MODEL, messages })
+    body: JSON.stringify({ model: CF_AI_MODEL, messages, thinking: { type: 'disabled' } })
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
