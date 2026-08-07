@@ -24,7 +24,41 @@
                 line-height: 1.6;
             }
 
-            .ps-group { margin-bottom: 0.5rem; }
+            .ps-search {
+                width: 100%;
+                padding: 0.5rem 0.75rem;
+                margin-bottom: 1rem;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 0.375rem;
+                background-color: rgba(255, 255, 255, 0.04);
+                color: #fff;
+                font-size: 0.85rem;
+                outline: none;
+                box-sizing: border-box;
+            }
+            .ps-search:focus { border-color: rgb(80, 140, 250); }
+            .ps-search::placeholder { color: #6b7280; }
+
+            .ps-filter-row {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 0.75rem;
+                font-size: 0.8rem;
+                color: #9ca3af;
+            }
+            .ps-filter-row select {
+                flex: 1;
+                padding: 0.35rem 0.5rem;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 0.375rem;
+                background-color: rgb(26, 29, 36);
+                color: #fff;
+                font-size: 0.8rem;
+                outline: none;
+            }
+
+            .ps-group { margin-bottom: 0.25rem; }
 
             .ps-group-label {
                 display: flex;
@@ -49,6 +83,13 @@
             }
             .ps-group.open > .ps-group-label::after { transform: rotate(0deg); }
 
+            .ps-group-label .ps-progress {
+                font-size: 0.72rem;
+                color: #6b7280;
+                font-weight: 400;
+                margin-left: 0.5rem;
+            }
+
             .ps-subitems {
                 list-style: none;
                 margin: 0.25rem 0 0.25rem 0.75rem;
@@ -61,7 +102,10 @@
             .ps-group.open > .ps-subitems { max-height: 62.5rem; }
 
             .ps-subitems li a {
-                display: block;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 0.4rem;
                 padding: 0.4rem 0.75rem;
                 color: #9ca3af;
                 text-decoration: none;
@@ -70,6 +114,11 @@
             }
             .ps-subitems li a:hover { color: #fff; background: rgba(255,255,255,0.04); }
             .ps-subitems li a.active { color: rgb(80, 140, 250); font-weight: 600; }
+            .ps-subitems li a .ps-sub-count {
+                font-size: 0.7rem;
+                color: #6b7280;
+                flex-shrink: 0;
+            }
 
             .ps-main {
                 flex: 1;
@@ -80,6 +129,12 @@
             .ps-title {
                 font-size: 2.25rem;
                 font-weight: 700;
+                color: #6b7280;
+                margin: 0 0 0.25rem 0;
+            }
+
+            .ps-subtitle {
+                font-size: 0.9rem;
                 color: #6b7280;
                 margin: 0 0 1.25rem 0;
             }
@@ -129,7 +184,7 @@
                 overflow: hidden;
                 transition: max-height 0.3s ease;
             }
-            .ps-card.open .ps-card-body { max-height: 75rem; }
+            .ps-card.open .ps-card-body { max-height: none; }
 
             .ps-problem {
                 display: flex;
@@ -158,33 +213,75 @@
                 flex-shrink: 0;
             }
             .ps-problem .ps-dot.dim { background-color: #4b5563; }
-            .ps-problem .ps-text { flex: 1; }
+            .ps-problem .ps-text { flex: 1; min-width: 0; }
             .ps-problem .ps-text a { color: rgb(80, 140, 250); text-decoration: none; }
             .ps-problem .ps-text a:hover { text-decoration: underline; }
+            .ps-problem .ps-text .ps-problem-name { color: #d1d5db; }
+            .ps-problem .ps-text a.ps-link { color: rgb(80, 140, 250); }
 
+            .ps-problem .ps-rating {
+                flex-shrink: 0;
+                margin-left: 0.75rem;
+                font-size: 0.75rem;
+                padding: 0.15rem 0.5rem;
+                border-radius: 999px;
+                font-weight: 600;
+            }
+            .ps-rating.r-0 { background: rgba(156,163,175,0.15); color: #9ca3af; }   /* <1200 入门 */
+            .ps-rating.r-1 { background: rgba(80,200,100,0.15); color: #50c864; }   /* 1200-1600 基础 */
+            .ps-rating.r-2 { background: rgba(80,140,250,0.15); color: #508cfa; }   /* 1600-2000 进阶 */
+            .ps-rating.r-3 { background: rgba(180,120,250,0.18); color: #b478fa; }  /* 2000-2100 挑战 */
+
+            .ps-problem .ps-tags {
+                display: none;
+                margin-left: 0.75rem;
+                flex-shrink: 0;
+                gap: 0.25rem;
+            }
+            .ps-problem .ps-tag {
+                font-size: 0.68rem;
+                padding: 0.1rem 0.4rem;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.06);
+                color: #9ca3af;
+                white-space: nowrap;
+            }
+
+            .ps-empty { text-align: center; color: #6b7280; padding: 2rem 1rem; font-size: 0.9rem; }
+
+            .ps-footer { text-align: center; color: #6b7280; font-size: 0.8rem; padding: 1.5rem 0; }
 
             body.light-mode .ps-sidebar { color: #374151; border-right-color: rgba(0,0,0,0.08); }
+            body.light-mode .ps-search { background-color: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.12); color: #000; }
+            body.light-mode .ps-filter-row select { background-color: rgb(240,240,240); border-color: rgba(0,0,0,0.12); color: #000; }
             body.light-mode .ps-group-label { color: #111827; }
             body.light-mode .ps-subitems { border-left-color: rgba(0,0,0,0.1); }
             body.light-mode .ps-subitems li a { color: #4b5563; }
             body.light-mode .ps-subitems li a:hover { color: #111827; background: rgba(0,0,0,0.04); }
             body.light-mode .ps-subitems li a.active { color: rgb(52, 120, 246); }
             body.light-mode .ps-title { color: #6b7280; }
+            body.light-mode .ps-subtitle { color: #6b7280; }
             body.light-mode .ps-card-head { color: #111827; background-color: rgba(0,0,0,0.02); border-bottom-color: rgba(0,0,0,0.06); }
             body.light-mode .ps-problem { color: #374151; border-bottom-color: rgba(0,0,0,0.04); }
             body.light-mode .ps-problem:hover { background-color: rgba(0,0,0,0.03); }
             body.light-mode .ps-problem .ps-dot.dim { background-color: #cbd5e1; color: #6b7280; }
+            body.light-mode .ps-problem .ps-text .ps-problem-name { color: #374151; }
             body.light-mode .ps-problem { background-color: #ffffff; }
             body.light-mode .ps-card { background-color: #ffffff; }
+            body.light-mode .ps-problem .ps-tag { background: rgba(0,0,0,0.05); color: #6b7280; }
 
             @media (max-width: 768px) {
                 .ps-wrap { flex-direction: column; }
-                .ps-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); }
+                .ps-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem; }
                 .ps-main { padding: 1.25rem; }
                 .ps-title { font-size: 1.75rem; }
                 .ps-card.open .ps-card-body { max-height: none; }
                 .ps-group.open > .ps-subitems { max-height: none; }
                 .ps-problem { padding: 0.65rem 0.875rem; font-size: 0.875rem; }
+            }
+            @media (max-width: 480px) {
+                .ps-problem { flex-wrap: wrap; gap: 0.25rem; }
+                .ps-problem .ps-tags { margin-left: 2rem; }
             }
         </style>
     </head>
@@ -207,254 +304,230 @@
 
         <div class="ps-wrap">
             <aside class="ps-sidebar">
-                <div class="ps-group open">
-                    <div class="ps-group-label">哈基图的题单</div>
-                    <ul class="ps-subitems">
-                        <li><a href="#basic-algo" class="ps-cat-link active" data-target="basic-algo">基础算法</a></li>
-                        <li><a href="#prefix-sum" class="ps-cat-link" data-target="prefix-sum">前缀和</a></li>
-                        <li><a href="#diff" class="ps-cat-link" data-target="diff">差分</a></li>
-                        <li><a href="#dsu" class="ps-cat-link" data-target="dsu">并查集</a></li>
-                        <li><a href="#bit" class="ps-cat-link" data-target="bit">树状数组</a></li>
-                    </ul>
+                <input type="text" class="ps-search" id="ps-search" placeholder="搜索题号 / 题名...">
+                <div class="ps-filter-row">
+                    <span>难度上限</span>
+                    <select id="ps-max-rating">
+                        <option value="2100" selected>2100（铜牌线）</option>
+                        <option value="2000">2000</option>
+                        <option value="1800">1800</option>
+                        <option value="1600">1600</option>
+                        <option value="1400">1400</option>
+                        <option value="1200">1200</option>
+                        <option value="0">不限</option>
+                    </select>
+                </div>
+                <div class="ps-group open" id="ps-cat-list">
+                    <div class="ps-group-label" id="ps-root-label">哈基图的题单</div>
+                    <ul class="ps-subitems" id="ps-cat-items"></ul>
                 </div>
             </aside>
 
             <main class="ps-main">
-                <!-- 基础算法区（默认显示） -->
-                <section class="ps-section" id="basic-algo">
-                    <h1 class="ps-title">基础算法</h1>
+                <h1 class="ps-title" id="ps-page-title">题单</h1>
+                <p class="ps-subtitle" id="ps-page-subtitle"></p>
+                <section class="ps-section" id="ps-section">
                     <div class="ps-card open">
                         <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="ps-name"><span class="ps-icon">✎</span>基础算法</span>
+                            <span class="ps-name"><span class="ps-icon">✎</span><span id="ps-card-title">加载中...</span></span>
                             <span class="ps-toggle">▾</span>
                         </div>
-                        <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ba-001">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="http://47.121.118.174/p/513" target="_blank">等和三分划分方案数</a></span>
-                            </div>
+                        <div class="ps-card-body" id="ps-card-body">
+                            <div class="ps-empty">正在加载题目数据...</div>
                         </div>
                     </div>
                 </section>
-
-                <!-- 前缀和区 -->
-                <section class="ps-section" id="prefix-sum" style="display:none;">
-                    <h1 class="ps-title">前缀和</h1>
-                    <div class="ps-card open">
-                        <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="ps-name"><span class="ps-icon">✎</span>前缀和</span>
-                            <span class="ps-toggle">▾</span>
-                        </div>
-                        <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ps-001">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="http://47.121.118.174/p/170" target="_blank">买花</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="ps-002">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="http://47.121.118.174/p/42" target="_blank">二维前缀和</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="ps-003">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="http://47.121.118.174/p/617" target="_blank">闪耀的灯光</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="ps-004">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P13879" target="_blank">P13879</a></span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 差分区 -->
-                <section class="ps-section" id="diff" style="display:none;">
-                    <h1 class="ps-title">差分</h1>
-                    <div class="ps-card open">
-                        <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="ps-name"><span class="ps-icon">✎</span>差分</span>
-                            <span class="ps-toggle">▾</span>
-                        </div>
-                        <div class="ps-card-body">
-                            <div class="ps-problem" data-id="df-001">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P10903" target="_blank">P10903</a></span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 并查集区 -->
-                <section class="ps-section" id="dsu" style="display:none;">
-                    <h1 class="ps-title">并查集</h1>
-                    <div class="ps-card open">
-                        <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="ps-name"><span class="ps-icon">✎</span>并查集</span>
-                            <span class="ps-toggle">▾</span>
-                        </div>
-                        <div class="ps-card-body">
-                            <div class="ps-problem" data-id="ds-001">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="http://47.121.118.174/p/608" target="_blank">传送阵</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="ds-002">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://www.luogu.com.cn/problem/P1536" target="_blank">P1536</a></span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <!-- 树状数组区 -->
-                <section class="ps-section" id="bit" style="display:none;">
-                    <h1 class="ps-title">树状数组</h1>
-                    <div class="ps-card open">
-                        <div class="ps-card-head" onclick="this.parentElement.classList.toggle('open')">
-                            <span class="ps-name"><span class="ps-icon">✎</span>树状数组</span>
-                            <span class="ps-toggle">▾</span>
-                        </div>
-                        <div class="ps-card-body">
-                            <div class="ps-problem" data-id="bt-001">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1157/E" target="_blank">CF 1157E Minimum Array</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-002">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/61/E" target="_blank">CF 61E Enemy is weak</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-003">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/459/D" target="_blank">CF 459D Pashmak and Parmida's problem</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-004">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1042/D" target="_blank">CF 1042D Petya and Array</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-005">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/961/E" target="_blank">CF 961E Tufurama</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-006">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1354/D" target="_blank">CF 1354D Multiset</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-007">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1430/E" target="_blank">CF 1430E String Reversal</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-008">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1208/D" target="_blank">CF 1208D Restore Permutation</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-009">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1520/F2" target="_blank">CF 1520F2 Guess the K-th Zero</a></span>
-                            </div>
-                            <div class="ps-problem" data-id="bt-010">
-                                <span class="ps-dot dim">✓</span>
-                                <span class="ps-text"><a href="https://codeforces.com/problemset/problem/1000/F" target="_blank">CF 1000F One Occurrence</a></span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <div class="ps-footer" id="ps-footer"></div>
             </main>
         </div>
 
         <script>
-            // 侧边栏分类切换：点击"动态规划"/"搜索"时，只显示对应 section
             (function () {
-                var links = document.querySelectorAll('.ps-cat-link');
-                var sections = document.querySelectorAll('.ps-section');
-
-                function show(targetId) {
-                    sections.forEach(function (s) {
-                        s.style.display = (s.id === targetId) ? '' : 'none';
-                    });
-                    links.forEach(function (a) {
-                        if (a.getAttribute('data-target') === targetId) {
-                            a.classList.add('active');
-                        } else {
-                            a.classList.remove('active');
-                        }
-                    });
-                }
-
-                links.forEach(function (a) {
-                    a.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        var target = this.getAttribute('data-target');
-                        if (!target) return;
-                        show(target);
-                        // 滚动到顶部，让用户从标题开始看
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    });
-                });
-            })();
-
-            // 题目完成状态管理：使用 localStorage 存储到本地电脑
-            (function () {
+                var DATA = null;
+                var currentCat = null;   // {category, sub}
+                var doneMap = {};
                 var STORAGE_KEY = 'probelm-set:done';
 
-                // 读取已完成的题目 ID
                 function loadDone() {
                     try {
                         var raw = localStorage.getItem(STORAGE_KEY);
                         if (!raw) return {};
                         var data = JSON.parse(raw);
                         return (data && typeof data === 'object') ? data : {};
-                    } catch (e) {
-                        return {};
+                    } catch (e) { return {}; }
+                }
+                function saveDone() {
+                    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(doneMap)); } catch (e) {}
+                }
+
+                function ratingClass(r) {
+                    if (r < 1200) return 'r-0';
+                    if (r < 1600) return 'r-1';
+                    if (r < 2000) return 'r-2';
+                    return 'r-3';
+                }
+                function ratingText(r) {
+                    if (r < 1200) return '入门';
+                    if (r < 1600) return '基础';
+                    if (r < 2000) return '进阶';
+                    return '挑战';
+                }
+
+                function esc(s) {
+                    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                }
+
+                function problemId(prob) { return 'cf-' + prob.key; }
+
+                // 渲染侧边栏分类
+                function renderSidebar() {
+                    var root = document.getElementById('ps-root-label');
+                    var totalAll = 0, doneAll = 0;
+                    DATA.categories.forEach(function (cat) {
+                        var all = 0, done = 0;
+                        cat.subs.forEach(function (sub) {
+                            sub.problems.forEach(function (p) {
+                                all++;
+                                if (doneMap[problemId(p)]) done++;
+                            });
+                        });
+                        totalAll += all; doneAll += done;
+                    });
+                    root.textContent = '哈基图的题单（' + doneAll + '/' + totalAll + '）';
+
+                    var items = document.getElementById('ps-cat-items');
+                    items.innerHTML = DATA.categories.map(function (cat) {
+                        var all = 0, done = 0;
+                        cat.subs.forEach(function (sub) {
+                            sub.problems.forEach(function (p) {
+                                all++;
+                                if (doneMap[problemId(p)]) done++;
+                            });
+                        });
+                        var inner = cat.subs.map(function (sub) {
+                            var subDone = sub.problems.filter(function (p) { return doneMap[problemId(p)]; }).length;
+                            return '<li><a href="javascript:void(0)" data-cat="' + esc(cat.id) + '" data-sub="' + esc(sub.id) + '">' +
+                                esc(sub.name) +
+                                '<span class="ps-sub-count">' + subDone + '/' + sub.problems.length + '</span></a></li>';
+                        }).join('');
+                        return '<div class="ps-group" data-group="' + esc(cat.id) + '">' +
+                            '<div class="ps-group-label">' + esc(cat.name) + ' <span class="ps-progress">' + done + '/' + all + '</span></div>' +
+                            '<ul class="ps-subitems">' + inner + '</ul></div>';
+                    }).join('');
+
+                    // 展开一级分组
+                    var groups = items.querySelectorAll('.ps-group');
+                    groups.forEach(function (g) {
+                        var label = g.querySelector('.ps-group-label');
+                        label.addEventListener('click', function () {
+                            g.classList.toggle('open');
+                        });
+                    });
+                    // 点击二级分类
+                    items.querySelectorAll('a[data-sub]').forEach(function (a) {
+                        a.addEventListener('click', function () {
+                            selectSub(a.getAttribute('data-cat'), a.getAttribute('data-sub'));
+                        });
+                    });
+                }
+
+                // 选择二级分类
+                function selectSub(catId, subId) {
+                    DATA.categories.forEach(function (cat) {
+                        if (cat.id === catId) {
+                            cat.subs.forEach(function (sub) {
+                                if (sub.id === subId) {
+                                    currentCat = { category: cat, sub: sub };
+                                }
+                            });
+                        }
+                    });
+                    if (!currentCat) return;
+                    document.querySelectorAll('#ps-cat-items a[data-sub]').forEach(function (a) {
+                        a.classList.toggle('active', a.getAttribute('data-cat') === catId && a.getAttribute('data-sub') === subId);
+                    });
+                    renderProblems();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                // 渲染题目列表（含搜索/难度过滤）
+                function renderProblems() {
+                    if (!currentCat) return;
+                    var sub = currentCat.sub;
+                    var keyword = (document.getElementById('ps-search').value || '').trim().toLowerCase();
+                    var maxR = parseInt(document.getElementById('ps-max-rating').value) || 0;
+                    var doneCount = 0;
+
+                    var list = sub.problems.filter(function (p) {
+                        if (maxR > 0 && p.rating > maxR) return false;
+                        if (keyword) {
+                            var hay = (p.key + ' ' + p.name + ' ' + p.tags.join(' ')).toLowerCase();
+                            if (hay.indexOf(keyword) < 0) return false;
+                        }
+                        return true;
+                    });
+
+                    document.getElementById('ps-page-title').textContent = currentCat.category.name + ' · ' + sub.name;
+                    document.getElementById('ps-page-subtitle').textContent = '共 ' + list.length + ' 题（难度上限 ' + (maxR || '不限') + '）· 难度按 CF Rating 分级，2100 以下为 ICPC 铜牌线内';
+                    document.getElementById('ps-card-title').textContent = sub.name;
+                    document.getElementById('ps-card-body').innerHTML = list.length === 0 ?
+                        '<div class="ps-empty">没有匹配的题目，试试调整搜索或难度筛选</div>' :
+                        list.map(function (p) {
+                            var id = problemId(p);
+                            var isDone = !!doneMap[id];
+                            var tags = (p.tags || []).slice(0, 3).map(function (t) {
+                                return '<span class="ps-tag">' + esc(t) + '</span>';
+                            }).join('');
+                            return '<div class="ps-problem" data-id="' + esc(id) + '">' +
+                                '<span class="ps-dot' + (isDone ? '' : ' dim') + '">✓</span>' +
+                                '<span class="ps-text">' +
+                                '<span class="ps-problem-name">' + esc(p.key) + ' · ' + esc(p.name) + '</span> &nbsp;' +
+                                '<a class="ps-link" href="' + esc(p.link) + '" target="_blank">打开</a>' +
+                                '</span>' +
+                                '<span class="ps-rating ' + ratingClass(p.rating) + '">' + esc(ratingText(p.rating)) + ' ' + p.rating + '</span>' +
+                                '<span class="ps-tags">' + tags + '</span>' +
+                                '</div>';
+                        }).join('');
+
+                    // 绑定点击切换完成状态
+                    document.querySelectorAll('#ps-card-body .ps-problem').forEach(function (row) {
+                        row.addEventListener('click', function (e) {
+                            if (e.target.tagName === 'A') return;
+                            var id = row.getAttribute('data-id');
+                            if (doneMap[id]) { delete doneMap[id]; }
+                            else { doneMap[id] = true; }
+                            saveDone();
+                            applyRow(row, id);
+                            renderSidebar();
+                        });
+                    });
+
+                    document.getElementById('ps-footer').textContent = '已完成 ' + list.filter(function (p) { return doneMap[problemId(p)]; }).length + '/' + list.length + ' 题 · 点击题目可标记完成';
+                }
+
+                function applyRow(row, id) {
+                    var dot = row.querySelector('.ps-dot');
+                    if (doneMap[id]) { row.classList.add('done'); dot.classList.remove('dim'); }
+                    else { row.classList.remove('done'); dot.classList.add('dim'); }
+                }
+
+                // 搜索/难度变化时重渲染
+                document.getElementById('ps-search').addEventListener('input', function () { renderProblems(); });
+                document.getElementById('ps-max-rating').addEventListener('change', function () { renderProblems(); });
+
+                // 初始化
+                doneMap = loadDone();
+                fetch('problem-set-data.json').then(function (r) { return r.json(); }).then(function (data) {
+                    DATA = data;
+                    renderSidebar();
+                    // 默认选中第一个分类的第一个子分类
+                    if (DATA.categories.length && DATA.categories[0].subs.length) {
+                        selectSub(DATA.categories[0].id, DATA.categories[0].subs[0].id);
                     }
-                }
-
-                // 保存已完成的题目 ID
-                function saveDone(map) {
-                    try {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
-                    } catch (e) { /* 忽略写入失败 */ }
-                }
-
-                // 应用已完成状态到 DOM
-                function applyDone(map) {
-                    document.querySelectorAll('.ps-problem').forEach(function (row) {
-                        var id = row.getAttribute('data-id');
-                        if (!id) return;
-                        var dot = row.querySelector('.ps-dot');
-                        if (map[id]) {
-                            row.classList.add('done');
-                            if (dot) dot.classList.remove('dim');
-                        } else {
-                            row.classList.remove('done');
-                            if (dot) dot.classList.add('dim');
-                        }
-                    });
-                }
-
-                var doneMap = loadDone();
-
-                // 绑定点击切换
-                document.querySelectorAll('.ps-problem').forEach(function (row) {
-                    var id = row.getAttribute('data-id');
-                    if (!id) return;
-                    row.addEventListener('click', function () {
-                        if (doneMap[id]) {
-                            delete doneMap[id];
-                        } else {
-                            doneMap[id] = true;
-                        }
-                        saveDone(doneMap);
-                        applyDone(doneMap);
-                    });
+                }).catch(function (e) {
+                    document.getElementById('ps-card-body').innerHTML = '<div class="ps-empty">题目数据加载失败：' + esc(e.message) + '</div>';
                 });
-
-                // 初始应用一次（确保刷新后能恢复状态）
-                applyDone(doneMap);
             })();
-
-            // 侧边栏分组点击展开/收起
-            document.querySelectorAll('.ps-group-label').forEach(function (label) {
-                label.addEventListener('click', function () {
-                    this.parentElement.classList.toggle('open');
-                });
-            });
         </script>
         <script src="script.js"></script>
     </body>
