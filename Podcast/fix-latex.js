@@ -11,25 +11,37 @@ function fixLatex(s) {
   out = out.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
   // 带参数的命令
   out = out.replace(/\\pmod\{([^}]*)\}/g, ' (mod $1)');
+  out = out.replace(/\\phantom\{([^}]*)\}/g, '');
   out = out.replace(/\\operatorname\{([^}]*)\}/g, '$1');
   out = out.replace(/\\text\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\texttt\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\textrm\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\textsf\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\textbf\{([^}]*)\}/g, '$1');
   out = out.replace(/\\mathrm\{([^}]*)\}/g, '$1');
   out = out.replace(/\\mathbf\{([^}]*)\}/g, '$1');
   out = out.replace(/\\mathit\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\hat\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\overline\{([^}]*)\}/g, '$1');
+  out = out.replace(/\\underline\{([^}]*)\}/g, '$1');
   // 常用符号
   const sym = [
     [/\\leq/g, '≤'], [/\\geq/g, '≥'],
+    [/\\leqslant/g, '≤'], [/\\geqslant/g, '≥'],
     [/\\le\b/g, '≤'], [/\\ge\b/g, '≥'],
-    [/\\neq/g, '≠'], [/\\approx/g, '≈'], [/\\pm/g, '±'],
+    [/\\neq/g, '≠'], [/\\ne\b/g, '≠'],
+    [/\\approx/g, '≈'], [/\\pm/g, '±'],
     [/\\times/g, '×'], [/\\cdot/g, '·'],
     [/\\dots/g, '…'], [/\\ldots/g, '…'], [/\\cdots/g, '…'],
     [/\\infty/g, '∞'], [/\\in\b/g, '∈'], [/\\notin/g, '∉'],
-    [/\\mid\b/g, '|'], [/\\cup/g, '∪'], [/\\cap/g, '∩'],
+    [/\\mid\b/g, '|'], [/\\vert\b/g, '|'], [/\\lvert\b/g, '|'], [/\\rvert\b/g, '|'],
+    [/\\cup/g, '∪'], [/\\cap/g, '∩'],
     [/\\oplus/g, '⊕'], [/\\otimes/g, '⊗'],
     [/\\lfloor/g, '⌊'], [/\\rfloor/g, '⌋'],
     [/\\lceil/g, '⌈'], [/\\rceil/g, '⌉'],
     [/\\to\b/g, '→'], [/\\rightarrow/g, '→'], [/\\leftarrow/g, '←'],
     [/\\leftrightarrow/g, '↔'], [/\\Rightarrow/g, '⇒'], [/\\Leftrightarrow/g, '⇔'],
+    [/\\equiv/g, '≡'],
     [/\\sum\b/g, '∑'], [/\\prod\b/g, '∏'], [/\\sqrt/g, '√'],
     [/\\bmod\b/g, ' mod '], [/\\mod\b/g, ' mod '],
     [/\\land\b/g, '∧'], [/\\lor\b/g, '∨'], [/\\neg\b/g, '¬'],
@@ -37,7 +49,15 @@ function fixLatex(s) {
     [/\\%\\?/g, '%'], [/\\%/g, '%'],
     [/\\_/g, '_'],
     [/\\\(/g, '('], [/\\\)/g, ')'], [/\\\[/g, '['], [/\\\]/g, ']'],
-    [/\\\{/g, '{'], [/\\\}/g, '}'], [/\\\$/g, '$']
+    [/\\\{/g, '{'], [/\\\}/g, '}'], [/\\\$/g, '$'],
+    [/\\\&/g, '&'],
+    // 空格类命令
+    [/\\,/g, ' '], [/\\;/g, ' '], [/\\:/g, ' '], [/\\!/g, ' '],
+    [/\\ /g, ' '], [/\\quad/g, ' '], [/\\qquad/g, ' '],
+    [/\\newline/g, '\n'],
+    // 表格换行 \\ （行尾）
+    [/\\\\/g, ' '],
+    [/\\^/g, '^']
   ];
   for (const [re, rep] of sym) out = out.replace(re, rep);
   // 残留的 \x 命令（未知命令）去掉反斜杠保留字母
