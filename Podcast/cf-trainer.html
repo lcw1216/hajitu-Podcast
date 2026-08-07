@@ -99,7 +99,7 @@
                         <button class="acm-btn acm-btn-primary" id="cf-send">发送</button>
                     </div>
                     <div class="cf-btn-row">
-                        <button class="acm-btn acm-btn-sm" id="cf-btn-hint">💡 给提示</button>
+                        <button class="acm-btn acm-btn-sm" id="cf-btn-hint">💡 要提示</button>
                         <button class="acm-btn acm-btn-sm" id="cf-btn-code">⚡ 生成代码</button>
                     </div>
                 </div>
@@ -507,8 +507,8 @@
             inputEl.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(inputEl.value); }
             });
-            $('cf-btn-hint').addEventListener('click', function () { sendMessage('给我一点提示（只要思路方向，不要完整代码）'); });
-            $('cf-btn-code').addEventListener('click', function () { sendMessage('生成完整的可提交代码（C++17），并简单解释思路'); });
+            $('cf-btn-hint').addEventListener('click', function () { sendMessage('请给我一条提示'); });
+            $('cf-btn-code').addEventListener('click', function () { sendMessage('请生成完整的可提交代码，使用模板（#include <bits/stdc++.h> 那个结构）'); });
 
             // ===== CF 账号 =====
             function loadAccount() {
