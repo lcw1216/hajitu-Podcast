@@ -39,6 +39,21 @@
         .cf-topbar .cf-top-sub { font-size: 0.72rem; color: rgb(140,140,140); }
         .cf-topbar .cf-spacer { flex: 1; }
 
+        .cf-top-btn {
+            padding: 0.3rem 0.7rem;
+            font-size: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 999px;
+            color: rgb(173,173,173);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .cf-top-btn:hover { border-color: rgb(250,80,80); color: rgb(250,80,80); background: rgba(250,80,80,0.08); }
+        body.light-mode .cf-top-btn { color: rgb(100,100,100); border-color: rgba(0,0,0,0.15); }
+        body.light-mode .cf-top-btn:hover { border-color: rgb(220,50,50); color: rgb(220,50,50); }
+
         /* ===== 消息区 ===== */
         .cf-messages {
             flex: 1;
@@ -256,6 +271,7 @@
                     <div class="cf-top-sub" id="cf-top-sub">输入 1~4 或直接聊天</div>
                 </div>
                 <div class="cf-spacer"></div>
+                <button class="cf-top-btn" id="cf-clear-btn" title="清空对话框">🗑 清空</button>
             </div>
 
             <!-- 消息区 -->
@@ -297,6 +313,35 @@
             var $ = function (id) { return document.getElementById(id); };
             var messagesEl = $('cf-messages');
             var inputEl = $('cf-input');
+
+            // ===== 会话持久化（localStorage：刷新后恢复当前题目/会话） =====
+            var CF_STATE_KEY = 'cf-trainer:state';
+            function saveState() {
+                try {
+                    localStorage.setItem(CF_STATE_KEY, JSON.stringify({
+                        current: state.current,
+                        translation: state.translation,
+                        statementEn: state.statementEn,
+                        sessionId: state.sessionId,
+                        lastCode: state.lastCode
+                    }));
+                } catch (e) { /* ignore */ }
+            }
+            function restoreState() {
+                try {
+                    var raw = localStorage.getItem(CF_STATE_KEY);
+                    if (!raw) return;
+                    var d = JSON.parse(raw);
+                    if (d.current) state.current = d.current;
+                    if (d.translation) state.translation = d.translation;
+                    if (d.statementEn) state.statementEn = d.statementEn;
+                    if (d.sessionId) state.sessionId = d.sessionId;
+                    if (d.lastCode) state.lastCode = d.lastCode;
+                } catch (e) { /* ignore */ }
+            }
+            function clearState() {
+                try { localStorage.removeItem(CF_STATE_KEY); } catch (e) {}
+            }
 
             // ===== 通用 =====
             function api(url, opts) {
@@ -433,6 +478,7 @@
                         state.statementEn = '';
                         state.sessionId = null;
                         state.lastCode = '';
+                        saveState();
                         if (d.problem.statementZh) {
                             state.translation = d.problem.statementZh;
                             var m = addMsg('ai', '📖 **题目：' + d.problem.key + ' - ' + d.problem.name + '（难度 ' + d.problem.rating + '）**');
@@ -499,7 +545,7 @@
                                             renderSubmitActions(ai.msg, code);
                                         }
                                     }
-                                    loadHistory();
+                                    saveState();
                                     return;
                                 }
                                 var text2 = decoder.decode(res.value, { stream: true });
@@ -678,45 +724,66 @@
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(inputEl.value); }
             });
 
-            // ===== 历史恢复（保留持久化，无列表 UI） =====
+            // ===== 历史恢复（刷新后保留对话内容） =====
             function loadHistory() {
-                // 静默恢复最近会话消息（不展示会话列表）
-                if (state.sessionId) return;
-                api('/api/cf/history').then(function (d) {
-                    if (!d.sessions || !d.sessions.length) return;
-                    var latest = d.sessions[0];
-                    if (!latest.msg_count) return;
-                    state.sessionId = latest.id;
-                    if (latest.problem_key) {
-                        // 尝试恢复当前题目信息
-                        api('/api/cf/problem/' + (latest.problem_key.match(/^(\d+)([A-Z]\d*)$/) ? latest.problem_key : '0/A').replace(/^(\d+)([A-Z]\d*)$/, '$1/$2')).then(function (pd) {
-                            // 忽略，仅恢复对话
-                        }).catch(function () {});
-                    }
-                    api('/api/cf/session/' + latest.id + '/messages').then(function (d2) {
-                        if (d2.error || !d2.messages || !d2.messages.length) return;
-                        messagesEl.innerHTML = '';
-                        var title = latest.title || latest.problem_key || '上次会话';
-                        addSys('🕘 已恢复上次会话：' + title);
-                        (d2.messages || []).forEach(function (m) {
-                            if (m.role === 'user') addMsg('user', esc(m.content));
-                            else if (m.role === 'assistant') {
-                                var ai = addMsg('ai', '');
-                                ai.body.innerHTML = renderMarkdown(m.content);
-                                var code = extractCode(m.content);
-                                if (code && state.current) { state.lastCode = code; renderSubmitActions(ai.msg, code); }
-                            }
-                        });
-                    });
+                return new Promise(function (resolve) {
+                    // 1. 先从 localStorage 恢复当前题目等状态
+                    restoreState();
+                    // 2. 从服务器恢复最近会话消息
+                    api('/api/cf/history').then(function (d) {
+                        if (!d.sessions || !d.sessions.length) { resolve(); return; }
+                        var latest = d.sessions[0];
+                        if (!latest.msg_count) { resolve(); return; }
+                        if (!state.sessionId) state.sessionId = latest.id;
+                        api('/api/cf/session/' + latest.id + '/messages').then(function (d2) {
+                            if (d2.error || !d2.messages || !d2.messages.length) { resolve(); return; }
+                            messagesEl.innerHTML = '';
+                            var title = latest.title || latest.problem_key || '上次会话';
+                            addSys('🕘 已恢复上次会话：' + title);
+                            (d2.messages || []).forEach(function (m) {
+                                if (m.role === 'user') addMsg('user', esc(m.content));
+                                else if (m.role === 'assistant') {
+                                    var ai = addMsg('ai', '');
+                                    ai.body.innerHTML = renderMarkdown(m.content);
+                                    var code = extractCode(m.content);
+                                    if (code && state.current) { state.lastCode = code; renderSubmitActions(ai.msg, code); }
+                                }
+                            });
+                            resolve();
+                        }).catch(function () { resolve(); });
+                    }).catch(function () { resolve(); });
                 });
             }
 
-            // ===== 初始化（无需登录） =====
-            setupIdentity();
-            loadHistory();
-            if (messagesEl.children.length === 0) {
-                addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n6️⃣ 分析题解（AI 看到题面后分析）\n\n也可以直接描述你的思路，我们一起讨论~');
+            // ===== 清空对话框 =====
+            function clearChat() {
+                if (!confirm('确定清空当前对话吗？此操作不可恢复。')) return;
+                // 删除服务器会话
+                if (state.sessionId) {
+                    api('/api/cf/session/' + state.sessionId, { method: 'DELETE' });
+                }
+                // 清空本地状态
+                state.current = null;
+                state.translation = '';
+                state.statementEn = '';
+                state.sessionId = null;
+                state.lastCode = '';
+                clearState();
+                // 清空界面
+                messagesEl.innerHTML = '';
+                addMsg('ai', '👋 已清空对话。\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n6️⃣ 分析题解（AI 看到题面后分析）\n\n也可以直接描述你的思路，我们一起讨论~');
             }
+
+            // ===== 清空对话框按钮 =====
+            $('cf-clear-btn').addEventListener('click', clearChat);
+
+            // ===== 初始化（无需登录，先恢复历史再显示欢迎语） =====
+            setupIdentity();
+            loadHistory().then(function () {
+                if (messagesEl.children.length === 0) {
+                    addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n6️⃣ 分析题解（AI 看到题面后分析）\n\n也可以直接描述你的思路，我们一起讨论~');
+                }
+            });
         })();
     </script>
 </body>
