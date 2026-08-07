@@ -391,18 +391,17 @@
                 return div;
             }
 
-            // ===== 登录 =====
-            function ensureLogin() {
+            // ===== 身份（无需 ACM 登录，未登录以访客身份使用） =====
+            function setupIdentity() {
                 return api('/api/me').then(function (d) {
-                    if (!d.user) {
-                        alert('请先登录（ACM-GroupWork 账号）后再使用刷题助手');
-                        window.location.href = 'acm-groupwork.html';
-                        return null;
+                    if (d.user) {
+                        $('cf-top-title').textContent = d.user.username + ' 的刷题助手';
+                        $('cf-avatar').textContent = (d.user.username || '?').charAt(0).toUpperCase();
+                    } else {
+                        $('cf-top-title').textContent = '访客的刷题助手';
+                        $('cf-avatar').textContent = '客';
                     }
-                    $('cf-top-title').textContent = d.user.username + ' 的刷题助手';
-                    $('cf-top-sub').textContent = '输入 1~4 或直接聊天';
-                    var first = (d.user.username || '?').charAt(0).toUpperCase();
-                    $('cf-avatar').textContent = first;
+                    $('cf-top-sub').textContent = '输入 1~5 或直接聊天';
                     return d.user;
                 });
             }
@@ -452,9 +451,7 @@
 
             // ===== 抽题（无设置，直接随机） =====
             function pickRandom() {
-                ensureLogin().then(function (user) {
-                    if (!user) return;
-                    api('/api/cf/random').then(function (d) {
+                api('/api/cf/random').then(function (d) {
                         if (d.error) {
                             if (d.error === '您已完成全部题目') {
                                 addSys('🎉 ' + d.error + '！可以换难度/标签再刷，或去题目集回顾。');
@@ -480,7 +477,6 @@
                             addSys('输入 4 要提示，5 重复题面，2 生成代码，或直接和我讨论思路');
                         }
                     });
-                });
             }
 
             function openStatementModal() {
@@ -501,22 +497,20 @@
                 state.streaming = true;
                 $('cf-send').disabled = true;
 
-                ensureLogin().then(function (user) {
-                    if (!user) { state.streaming = false; $('cf-send').disabled = false; return; }
-                    var payload = {
-                        message: text,
-                        problemKey: state.current ? state.current.key : '',
-                        problemTitle: state.current ? state.current.name : '',
-                        problemStatement: state.statementEn || '',
-                        translation: state.translation,
-                        sessionId: state.sessionId
-                    };
-                    fetch('/api/cf/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                        credentials: 'same-origin'
-                    }).then(function (r) {
+                var payload = {
+                    message: text,
+                    problemKey: state.current ? state.current.key : '',
+                    problemTitle: state.current ? state.current.name : '',
+                    problemStatement: state.statementEn || '',
+                    translation: state.translation,
+                    sessionId: state.sessionId
+                };
+                fetch('/api/cf/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
+                }).then(function (r) {
                         var reader = r.body.getReader();
                         var decoder = new TextDecoder();
                         var acc = '';
@@ -562,7 +556,6 @@
                         $('cf-send').disabled = false;
                         ai.body.innerHTML = '❌ 请求失败：' + esc(e.message);
                     });
-                });
             }
 
             // AI 代码块下的操作按钮（聊天内提交确认，非独立按钮）
@@ -699,15 +692,13 @@
                 });
             }
 
-            // ===== 初始化 =====
-            ensureLogin().then(function (user) {
-                if (!user) return;
-                loadAccount();
-                loadHistory();
-                if (messagesEl.children.length === 0) {
-                    addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n\n也可以直接描述你的思路，我们一起讨论~');
-                }
-            });
+            // ===== 初始化（无需登录） =====
+            setupIdentity();
+            loadAccount();
+            loadHistory();
+            if (messagesEl.children.length === 0) {
+                addMsg('ai', '👋 欢迎使用 **CF-AI 刷题助手**！\n\n📌 输入数字即可操作：\n1️⃣ 抽一道新题\n2️⃣ 生成代码\n3️⃣ 提交测评\n4️⃣ 给提示\n5️⃣ 重复显示题面\n\n也可以直接描述你的思路，我们一起讨论~');
+            }
         })();
     </script>
 </body>

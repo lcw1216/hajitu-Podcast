@@ -69,13 +69,12 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS cf_sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     problem_key TEXT,
     title TEXT,
     rating INTEGER,
     tags TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS cf_messages (
@@ -88,24 +87,22 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS cf_accounts (
-    user_id INTEGER PRIMARY KEY,
+    user_id TEXT PRIMARY KEY,
     cf_username TEXT NOT NULL,
     cf_encrypted_password TEXT NOT NULL,
     cookie_session TEXT DEFAULT '',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS cf_submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     problem_key TEXT NOT NULL,
     language TEXT NOT NULL,
     code TEXT NOT NULL,
     cf_submission_id TEXT,
     verdict TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
 
@@ -132,6 +129,15 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: '请先登录' });
   }
   next();
+}
+
+// CF AI Trainer 用户标识：优先用已登录的 ACM 账号，否则分配 guest 标识（无需登录即可用刷题助手）
+function getCfUid(req) {
+  if (req.session.userId) return 'u' + req.session.userId;
+  if (!req.session.cfGuestId) {
+    req.session.cfGuestId = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  return req.session.cfGuestId;
 }
 
 app.get('/api/me', (req, res) => {
@@ -363,13 +369,14 @@ function saveMessage(sessionId, role, content) {
 }
 
 // 抽题（优先从 cf-trainer.db 抽取，含中文题面；无匹配时回退全量题库）
-app.get('/api/cf/random', requireAuth, async (req, res) => {
+app.get('/api/cf/random', async (req, res) => {
   try {
     const minRating = req.query.min ? parseInt(req.query.min) : null;
     const maxRating = req.query.max ? parseInt(req.query.max) : null;
     const tags = req.query.tags ? req.query.tags.split(',') : [];
+    const uid = getCfUid(req);
     const exclude = new Set(
-      db.prepare('SELECT problem_key FROM cf_sessions WHERE user_id = ?').all(req.session.userId).map(r => r.problem_key).filter(Boolean)
+      db.prepare('SELECT problem_key FROM cf_sessions WHERE user_id = ?').all(uid).map(r => r.problem_key).filter(Boolean)
     );
     const opts = { minRating, maxRating, tags };
     const picked = cf.pickRandomFromDb(opts, exclude);
@@ -389,7 +396,7 @@ app.get('/api/cf/random', requireAuth, async (req, res) => {
 
 // 题面（英文原文 + AI 中文翻译，翻译缓存 7 天）
 const statementCache = new Map();
-app.get('/api/cf/problem/:contestId/:index', requireAuth, async (req, res) => {
+app.get('/api/cf/problem/:contestId/:index', async (req, res) => {
   try {
     const key = `${req.params.contestId}${req.params.index}`;
     const cacheKey = 'stmt:' + key;
@@ -413,9 +420,10 @@ app.get('/api/cf/problem/:contestId/:index', requireAuth, async (req, res) => {
 });
 
 // 对话（SSE 流式）
-app.post('/api/cf/chat', requireAuth, async (req, res) => {
+app.post('/api/cf/chat', async (req, res) => {
   if (!cf.CF_AI_APIKEY) return res.status(503).json({ error: '服务端未配置 AI API key' });
-  if (!cf.rateLimit(cf.chatLimiter, String(req.session.userId), 10, 60)) {
+  const uid = getCfUid(req);
+  if (!cf.rateLimit(cf.chatLimiter, uid, 10, 60)) {
     return res.status(429).json({ error: '对话频率过快，请稍候（限 10 次/分钟）' });
   }
   const { sessionId, message, problemKey, problemTitle, problemStatement, translation } = req.body;
@@ -425,14 +433,14 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
   let session = null;
   // 仅当前端明确传入 sessionId 时才复用已有会话；否则新建会话
   if (sid) {
-    session = getCfSession(req.session.userId, sid);
+    session = getCfSession(uid, sid);
     if (!session) sid = null;
   }
   if (!sid) {
     const r = db.prepare('INSERT INTO cf_sessions (user_id, problem_key, title) VALUES (?, ?, ?)')
-      .run(req.session.userId, problemKey || null, problemTitle || null);
+      .run(uid, problemKey || null, problemTitle || null);
     sid = r.lastInsertRowid;
-    session = getCfSession(req.session.userId, sid);
+    session = getCfSession(uid, sid);
   }
 
   saveMessage(sid, 'user', message);
@@ -489,30 +497,34 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
 });
 
 // 历史会话列表 + 消息
-app.get('/api/cf/history', requireAuth, (req, res) => {
+app.get('/api/cf/history', (req, res) => {
+  const uid = getCfUid(req);
   const sessions = db.prepare(`
     SELECT s.*, (SELECT COUNT(*) FROM cf_messages m WHERE m.session_id = s.id) AS msg_count
     FROM cf_sessions s WHERE s.user_id = ? ORDER BY s.created_at DESC LIMIT 50
-  `).all(req.session.userId);
+  `).all(uid);
   res.json({ sessions });
 });
 
-app.get('/api/cf/session/:id/messages', requireAuth, (req, res) => {
-  const session = getCfSession(req.session.userId, req.params.id);
+app.get('/api/cf/session/:id/messages', (req, res) => {
+  const uid = getCfUid(req);
+  const session = getCfSession(uid, req.params.id);
   if (!session) return res.status(404).json({ error: '会话不存在' });
   res.json({ messages: getSessionMessages(session.id) });
 });
 
-app.delete('/api/cf/session/:id', requireAuth, (req, res) => {
-  const session = getCfSession(req.session.userId, req.params.id);
+app.delete('/api/cf/session/:id', (req, res) => {
+  const uid = getCfUid(req);
+  const session = getCfSession(uid, req.params.id);
   if (!session) return res.status(404).json({ error: '会话不存在' });
   db.prepare('DELETE FROM cf_messages WHERE session_id = ?').run(session.id);
   db.prepare('DELETE FROM cf_sessions WHERE id = ?').run(session.id);
   res.json({ success: true });
 });
 
-// CF 账号绑定（AES 加密存储）
-app.post('/api/cf/account', requireAuth, (req, res) => {
+// CF 账号绑定（AES 加密存储，无需 ACM 登录）
+app.post('/api/cf/account', (req, res) => {
+  const uid = getCfUid(req);
   const { cfUsername, cfPassword } = req.body;
   if (!cfUsername || !cfPassword) return res.status(400).json({ error: '请输入 CF 用户名和密码' });
   const enc = cf.aesEncrypt(cfPassword, cf.CF_ENC_KEY);
@@ -520,29 +532,32 @@ app.post('/api/cf/account', requireAuth, (req, res) => {
     INSERT INTO cf_accounts (user_id, cf_username, cf_encrypted_password, updated_at)
     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(user_id) DO UPDATE SET cf_username=excluded.cf_username, cf_encrypted_password=excluded.cf_encrypted_password, updated_at=CURRENT_TIMESTAMP
-  `).run(req.session.userId, cfUsername.trim(), enc);
+  `).run(uid, cfUsername.trim(), enc);
   res.json({ success: true });
 });
 
-app.get('/api/cf/account', requireAuth, (req, res) => {
-  const acc = db.prepare('SELECT cf_username FROM cf_accounts WHERE user_id = ?').get(req.session.userId);
+app.get('/api/cf/account', (req, res) => {
+  const uid = getCfUid(req);
+  const acc = db.prepare('SELECT cf_username FROM cf_accounts WHERE user_id = ?').get(uid);
   res.json({ bound: !!acc, cfUsername: acc ? acc.cf_username : null });
 });
 
-app.delete('/api/cf/account', requireAuth, (req, res) => {
-  db.prepare('DELETE FROM cf_accounts WHERE user_id = ?').run(req.session.userId);
+app.delete('/api/cf/account', (req, res) => {
+  const uid = getCfUid(req);
+  db.prepare('DELETE FROM cf_accounts WHERE user_id = ?').run(uid);
   res.json({ success: true });
 });
 
-// 提交代码到 CF
-app.post('/api/cf/submit', requireAuth, async (req, res) => {
-  if (!cf.rateLimit(cf.submitLimiter, String(req.session.userId), 5, 60)) {
+// 提交代码到 CF（需绑定 CF 账号）
+app.post('/api/cf/submit', async (req, res) => {
+  const uid = getCfUid(req);
+  if (!cf.rateLimit(cf.submitLimiter, uid, 5, 60)) {
     return res.status(429).json({ error: '提交频率过快（限 5 次/分钟）' });
   }
   const { contestId, index, code, language } = req.body;
   if (!contestId || !index || !code) return res.status(400).json({ error: '参数不完整' });
 
-  const acc = db.prepare('SELECT * FROM cf_accounts WHERE user_id = ?').get(req.session.userId);
+  const acc = db.prepare('SELECT * FROM cf_accounts WHERE user_id = ?').get(uid);
   if (!acc) return res.status(400).json({ error: '请先绑定 CF 账号' });
   const password = cf.aesDecrypt(acc.cf_encrypted_password, cf.CF_ENC_KEY);
   if (!password) return res.status(500).json({ error: 'CF 密码解密失败' });
@@ -557,7 +572,7 @@ app.post('/api/cf/submit', requireAuth, async (req, res) => {
     const r = db.prepare(`
       INSERT INTO cf_submissions (user_id, problem_key, language, code, cf_submission_id)
       VALUES (?, ?, ?, ?, ?)
-    `).run(req.session.userId, problemKey, language || 'cpp20', code, submit.submissionId || '');
+    `).run(uid, problemKey, language || 'cpp20', code, submit.submissionId || '');
     res.json({ success: true, submissionId: submit.submissionId, localId: r.lastInsertRowid });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -565,20 +580,22 @@ app.post('/api/cf/submit', requireAuth, async (req, res) => {
 });
 
 // 提交历史
-app.get('/api/cf/submissions', requireAuth, (req, res) => {
+app.get('/api/cf/submissions', (req, res) => {
+  const uid = getCfUid(req);
   const subs = db.prepare(`
     SELECT * FROM cf_submissions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50
-  `).all(req.session.userId);
+  `).all(uid);
   res.json({ submissions: subs });
 });
 
 // 查询某次提交的测评结果（轮询）
-app.get('/api/cf/submission/:localId', requireAuth, async (req, res) => {
+app.get('/api/cf/submission/:localId', async (req, res) => {
   try {
-    const sub = db.prepare('SELECT * FROM cf_submissions WHERE id = ? AND user_id = ?').get(req.params.localId, req.session.userId);
+    const uid = getCfUid(req);
+    const sub = db.prepare('SELECT * FROM cf_submissions WHERE id = ? AND user_id = ?').get(req.params.localId, uid);
     if (!sub) return res.status(404).json({ error: '提交记录不存在' });
     if (!sub.cf_submission_id) return res.json({ verdict: 'PENDING', note: '尚未获取 CF 提交号' });
-    const acc = db.prepare('SELECT cf_username FROM cf_accounts WHERE user_id = ?').get(req.session.userId);
+    const acc = db.prepare('SELECT cf_username FROM cf_accounts WHERE user_id = ?').get(uid);
     const verdict = await cf.cfVerdict(acc ? acc.cf_username : '', sub.cf_submission_id);
     if (verdict.verdict !== 'PENDING') {
       db.prepare('UPDATE cf_submissions SET verdict = ? WHERE id = ?').run(verdict.verdict, sub.id);
