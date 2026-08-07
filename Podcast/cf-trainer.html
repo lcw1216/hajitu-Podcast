@@ -451,8 +451,6 @@
                     message: text,
                     problemKey: state.current ? state.current.key : '',
                     problemTitle: state.current ? state.current.name : '',
-                    problemStatement: state.statementEn || '',
-                    translation: state.translation,
                     sessionId: state.sessionId
                 };
                 fetch('/api/cf/chat', {
