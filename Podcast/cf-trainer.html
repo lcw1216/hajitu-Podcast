@@ -110,8 +110,7 @@
                             <option value="800">800</option><option value="1000">1000</option>
                             <option value="1200" selected>1200</option><option value="1400">1400</option>
                             <option value="1600">1600</option><option value="1800">1800</option>
-                            <option value="2000">2000</option><option value="2200">2200</option>
-                            <option value="2400">2400</option><option value="2600">2600</option>
+                            <option value="2000">2000</option>
                         </select>
                         <span>~</span>
                         <select id="cf-max" class="cf-sel">
@@ -119,9 +118,7 @@
                             <option value="1000">1000</option><option value="1200">1200</option>
                             <option value="1400">1400</option><option value="1600">1600</option>
                             <option value="1800" selected>1800</option><option value="2000">2000</option>
-                            <option value="2200">2200</option><option value="2400">2400</option>
-                            <option value="2600">2600</option><option value="3000">3000</option>
-                            <option value="3500">3500</option>
+                            <option value="2100">2100</option>
                         </select>
                         <button class="acm-btn acm-btn-primary acm-btn-sm" id="cf-random">抽题</button>
                     </div>
@@ -160,15 +157,7 @@
                             <div class="cf-p-tags" id="cf-p-tags"></div>
                             <div style="display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap;">
                                 <a class="acm-btn acm-btn-sm" id="cf-open-link" href="#" target="_blank">🔗 打开原题</a>
-                                <button class="acm-btn acm-btn-sm" id="cf-paste-statement">📋 粘贴题面</button>
                                 <button class="acm-btn acm-btn-sm" id="cf-view-statement" style="display:none;">📖 题面</button>
-                            </div>
-                            <div id="cf-stmt-input-box" style="display:none; margin-top:0.5rem;">
-                                <textarea id="cf-stmt-input" class="acm-input" rows="6" placeholder="从 CF 原题页复制题面（含 Input/Output/样例）粘贴到这里，AI 将翻译并讲解" spellcheck="false"></textarea>
-                                <div style="display:flex; gap:0.4rem; margin-top:0.4rem;">
-                                    <button class="acm-btn acm-btn-primary acm-btn-sm" id="cf-stmt-confirm">确认翻译</button>
-                                    <button class="acm-btn acm-btn-sm" id="cf-stmt-cancel">取消</button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -331,7 +320,14 @@
                     api('/api/cf/random?' + q.toString()).then(function (d) {
                         btn.disabled = false;
                         btn.textContent = '抽题';
-                        if (d.error) { alert(d.error); return; }
+                        if (d.error) {
+                            if (d.error === '您已完成全部题目') {
+                                addMsg('sys', '🎉 ' + d.error + '！可以换难度/标签再刷，或去题目集回顾。');
+                            } else {
+                                addMsg('sys', '⚠️ ' + d.error);
+                            }
+                            return;
+                        }
                         state.current = d.problem;
                         state.translation = '';
                         state.statementEn = '';
@@ -342,7 +338,7 @@
                             $('cf-view-statement').style.display = '';
                             addMsg('ai', '📖 **题目：' + d.problem.key + ' - ' + d.problem.name + '（' + d.problem.rating + '）**\n\n' + d.problem.statementZh.slice(0, 3000));
                         } else {
-                            addMsg('sys', '抽到题目：' + d.problem.name + '（' + d.problem.rating + '）。点击「🔗 打开原题」查看，或「📋 粘贴题面」让 AI 翻译讲解。');
+                            addMsg('sys', '抽到题目：' + d.problem.name + '（' + d.problem.rating + '）。点击「🔗 打开原题」在新标签页查看。');
                         }
                         loadHistory();
                     });
@@ -360,48 +356,16 @@
                 }).join('');
                 $('cf-open-link').href = 'https://codeforces.com/problemset/problem/' + state.current.contestId + '/' + state.current.index;
                 $('cf-view-statement').style.display = state.translation ? '' : 'none';
-                $('cf-stmt-input-box').style.display = 'none';
             }
-
-            // ===== 粘贴题面翻译 =====
-            $('cf-paste-statement').addEventListener('click', function () {
-                $('cf-stmt-input-box').style.display = '';
-                $('cf-stmt-input').focus();
-            });
-
-            $('cf-stmt-cancel').addEventListener('click', function () {
-                $('cf-stmt-input-box').style.display = 'none';
-            });
-
-            $('cf-stmt-confirm').addEventListener('click', function () {
-                var raw = $('cf-stmt-input').value.trim();
-                if (!raw) { alert('请先粘贴题面'); return; }
-                if (!state.current) { alert('请先抽题'); return; }
-                var btn = $('cf-stmt-confirm');
-                btn.disabled = true;
-                btn.textContent = '翻译中...';
-                api('/api/cf/translate', { method: 'POST', body: { contestId: state.current.contestId, index: state.current.index, statement: raw } })
-                    .then(function (d) {
-                        btn.disabled = false;
-                        btn.textContent = '确认翻译';
-                        if (d.error) { alert(d.error); return; }
-                        state.statementEn = raw;
-                        state.translation = d.translation;
-                        $('cf-stmt-input').value = '';
-                        $('cf-stmt-input-box').style.display = 'none';
-                        $('cf-view-statement').style.display = '';
-                        addMsg('ai', '📖 **题面翻译**\n' + d.translation);
-                    });
-            });
 
             // ===== 题面 =====
             function fetchStatement() {
                 if (!state.current) return;
-                var body = addMsg('sys', '正在获取题面并翻译...');
+                var body = addMsg('sys', '正在获取题面...');
                 api('/api/cf/problem/' + state.current.contestId + '/' + state.current.index).then(function (d) {
                     body.innerHTML = '';
                     if (d.error) {
-                        addMsg('sys', '⚠️ ' + d.error + ' —— 请点击「📋 粘贴题面」手动粘贴，或点击「🔗 打开原题」在新标签页查看。');
+                        addMsg('sys', '⚠️ ' + d.error + ' —— 请点击「🔗 打开原题」在新标签页查看。');
                         return;
                     }
                     state.statementEn = d.statement;

@@ -376,11 +376,12 @@ app.get('/api/cf/random', requireAuth, async (req, res) => {
     if (picked) {
       return res.json({ problem: picked, source: 'db' });
     }
-    // 回退：全量题库随机抽（无中文题面）
-    const problems = await cf.fetchProblemList();
-    const fallback = cf.pickRandomProblem(problems, opts, exclude);
-    if (!fallback) return res.status(404).json({ error: '没有符合条件的题目（可能都刷过了，尝试放宽难度/标签）' });
-    res.json({ problem: fallback, source: 'api' });
+    // 从数据库判断：当前筛选条件下可抽的题目总数 vs 已抽数量
+    const totalInRange = cf.pickRandomFromDb({ minRating, maxRating, tags }, new Set());
+    if (totalInRange === null) {
+      return res.status(404).json({ error: '当前筛选条件下没有题目，请放宽难度或标签' });
+    }
+    return res.status(404).json({ error: '您已完成全部题目' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -462,22 +463,6 @@ app.post('/api/cf/chat', requireAuth, async (req, res) => {
   } catch (e) {
     res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`);
     res.end();
-  }
-});
-
-// 用户粘贴题面 → AI 翻译（CF 题面被 Cloudflare 拦截时的替代方案）
-app.post('/api/cf/translate', requireAuth, async (req, res) => {
-  if (!cf.CF_AI_APIKEY) return res.status(503).json({ error: '服务端未配置 AI API key' });
-  const { statement } = req.body;
-  if (!statement || !statement.trim()) return res.status(400).json({ error: '题面不能为空' });
-  try {
-    const cn = await cf.aiChat([
-      { role: 'system', content: '你是算法竞赛题面翻译专家。把用户给的英文题面完整翻译成中文，保持术语准确（输入/输出格式、约束、样例），用 Markdown 格式输出。只输出翻译结果。' },
-      { role: 'user', content: statement.slice(0, 8000) }
-    ]);
-    res.json({ translation: cn });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
   }
 });
 
