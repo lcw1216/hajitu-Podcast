@@ -499,8 +499,9 @@
                             return '<div class="ps-problem" data-id="' + esc(id) + '">' +
                                 '<span class="ps-dot' + (isDone ? '' : ' dim') + '">✓</span>' +
                                 '<span class="ps-text">' +
-                                '<span class="ps-problem-name">' + esc(p.key) + ' · ' + esc(p.name) + '</span> &nbsp;' +
-                                '<a class="ps-link" href="' + esc(p.link) + '" target="_blank">打开</a>' +
+                                '<a class="ps-link" href="' + esc(p.link) + '" target="_blank">' +
+                                '<span class="ps-problem-name">' + esc(p.key) + ' · ' + esc(p.name) + '</span>' +
+                                '</a>' +
                                 '</span>' +
                                 '<span class="ps-rating ' + ratingClass(p.rating) + '">' + esc(ratingText(p.rating)) + ' ' + p.rating + '</span>' +
                                 '<span class="ps-tags">' + tags + '</span>' +
@@ -520,7 +521,7 @@
                         });
                     });
 
-                    document.getElementById('ps-footer').textContent = '已完成 ' + list.filter(function (p) { return doneMap[problemId(p)]; }).length + '/' + list.length + ' 题 · 点击题目可标记完成';
+                    document.getElementById('ps-footer').textContent = '已完成 ' + list.filter(function (p) { return doneMap[problemId(p)]; }).length + '/' + list.length + ' 题 · 点击题目名打开原题，点击行其他区域标记完成';
                 }
 
                 function applyRow(row, id) {
