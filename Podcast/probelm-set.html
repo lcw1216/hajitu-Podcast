@@ -22,7 +22,17 @@
                 color: #d1d5db;
                 font-size: 0.9375rem;
                 line-height: 1.6;
+                position: sticky;
+                top: 5.5rem;
+                max-height: calc(100vh - 6.5rem);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.15) transparent;
             }
+            .ps-sidebar::-webkit-scrollbar { width: 5px; }
+            .ps-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+            .ps-sidebar::-webkit-scrollbar-track { background: transparent; }
 
             .ps-search {
                 width: 100%;
@@ -99,7 +109,7 @@
                 overflow: hidden;
                 transition: max-height 0.25s ease;
             }
-            .ps-group.open > .ps-subitems { max-height: 62.5rem; }
+            .ps-group.open > .ps-subitems { max-height: 250rem; }
 
             .ps-subitems li a {
                 display: flex;
@@ -272,7 +282,15 @@
 
             @media (max-width: 768px) {
                 .ps-wrap { flex-direction: column; }
-                .ps-sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem; }
+                .ps-sidebar {
+                    width: 100%;
+                    border-right: none;
+                    border-bottom: 1px solid rgba(255,255,255,0.06);
+                    padding: 1rem;
+                    position: static;
+                    max-height: none;
+                    overflow-y: visible;
+                }
                 .ps-main { padding: 1.25rem; }
                 .ps-title { font-size: 1.75rem; }
                 .ps-card.open .ps-card-body { max-height: none; }
