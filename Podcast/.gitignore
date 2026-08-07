@@ -3,6 +3,9 @@ acm.db
 acm.db-shm
 acm.db-wal
 acm.db-journal
+cf-trainer.db
+cf-trainer.db-shm
+cf-trainer.db-wal
 logs/
 *.log
 .env
