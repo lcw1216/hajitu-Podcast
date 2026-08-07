@@ -240,7 +240,7 @@
             .ps-rating.r-0 { background: rgba(156,163,175,0.15); color: #9ca3af; }   /* <1200 入门 */
             .ps-rating.r-1 { background: rgba(80,200,100,0.15); color: #50c864; }   /* 1200-1600 基础 */
             .ps-rating.r-2 { background: rgba(80,140,250,0.15); color: #508cfa; }   /* 1600-2000 进阶 */
-            .ps-rating.r-3 { background: rgba(180,120,250,0.18); color: #b478fa; }  /* 2000-2100 挑战 */
+            .ps-rating.r-3 { background: rgba(180,120,250,0.18); color: #b478fa; }  /* 2000-2100 */
 
             .ps-problem .ps-tags {
                 display: none;
@@ -326,7 +326,7 @@
                 <div class="ps-filter-row">
                     <span>难度上限</span>
                     <select id="ps-max-rating">
-                        <option value="2100" selected>2100（铜牌线）</option>
+                        <option value="2100" selected>2100</option>
                         <option value="2000">2000</option>
                         <option value="1800">1800</option>
                         <option value="1600">1600</option>
@@ -486,7 +486,7 @@
                     });
 
                     document.getElementById('ps-page-title').textContent = currentCat.category.name + ' · ' + sub.name;
-                    document.getElementById('ps-page-subtitle').textContent = '共 ' + list.length + ' 题（难度上限 ' + (maxR || '不限') + '）· 难度按 CF Rating 分级，2100 以下为 ICPC 铜牌线内';
+                    document.getElementById('ps-page-subtitle').textContent = '共 ' + list.length + ' 题（难度上限 ' + (maxR || '不限') + '）· 难度按 CF Rating 分级';
                     document.getElementById('ps-card-title').textContent = sub.name;
                     document.getElementById('ps-card-body').innerHTML = list.length === 0 ?
                         '<div class="ps-empty">没有匹配的题目，试试调整搜索或难度筛选</div>' :
