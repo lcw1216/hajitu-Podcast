@@ -242,7 +242,7 @@
             var state = {
                 current: null,        // 当前题目 {contestId,index,key,name,rating,tags}
                 translation: '',      // 题面中文翻译
-                statement: '',        // 题面英文原文
+                statementEn: '',      // 题面英文原文（若有）
                 sessionId: null,      // 当前会话 id
                 streaming: false,
                 selectedTags: [],
@@ -334,10 +334,16 @@
                         if (d.error) { alert(d.error); return; }
                         state.current = d.problem;
                         state.translation = '';
-                        state.statement = '';
+                        state.statementEn = '';
                         state.sessionId = null;
                         renderCurrentProblem();
-                        addMsg('sys', '抽到题目：' + d.problem.name + '（' + d.problem.rating + '）。点击「🔗 打开原题」查看，或「📋 粘贴题面」让 AI 翻译讲解。');
+                        if (d.problem.statementZh) {
+                            state.translation = d.problem.statementZh;
+                            $('cf-view-statement').style.display = '';
+                            addMsg('ai', '📖 **题目：' + d.problem.key + ' - ' + d.problem.name + '（' + d.problem.rating + '）**\n\n' + d.problem.statementZh.slice(0, 3000));
+                        } else {
+                            addMsg('sys', '抽到题目：' + d.problem.name + '（' + d.problem.rating + '）。点击「🔗 打开原题」查看，或「📋 粘贴题面」让 AI 翻译讲解。');
+                        }
                         loadHistory();
                     });
                 });
@@ -379,7 +385,7 @@
                         btn.disabled = false;
                         btn.textContent = '确认翻译';
                         if (d.error) { alert(d.error); return; }
-                        state.statement = raw;
+                        state.statementEn = raw;
                         state.translation = d.translation;
                         $('cf-stmt-input').value = '';
                         $('cf-stmt-input-box').style.display = 'none';
@@ -398,10 +404,10 @@
                         addMsg('sys', '⚠️ ' + d.error + ' —— 请点击「📋 粘贴题面」手动粘贴，或点击「🔗 打开原题」在新标签页查看。');
                         return;
                     }
-                    state.statement = d.statement;
+                    state.statementEn = d.statement;
                     state.translation = d.translation || '';
                     if (state.translation) $('cf-view-statement').style.display = '';
-                    addMsg('ai', (state.translation ? state.translation : state.statement).slice(0, 4000));
+                    addMsg('ai', (state.translation ? state.translation : state.statementEn).slice(0, 4000));
                 });
             }
 
@@ -409,7 +415,7 @@
                 if (!state.current) { alert('请先抽题'); return; }
                 var modal = $('cf-statement-modal');
                 $('cf-stmt-title').textContent = state.current.key + ' - ' + state.current.name;
-                $('cf-statement-body').textContent = state.translation || state.statement || '加载中...';
+                $('cf-statement-body').textContent = state.translation || state.statementEn || '加载中...';
                 modal.style.display = 'flex';
             });
 
@@ -439,7 +445,7 @@
                         message: text,
                         problemKey: state.current.key,
                         problemTitle: state.current.name,
-                        problemStatement: state.statement,
+                        problemStatement: state.statementEn || '',
                         translation: state.translation,
                         sessionId: state.sessionId
                     };

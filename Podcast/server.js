@@ -343,6 +343,9 @@ app.get('/api/users', (req, res) => {
 // CF AI Trainer 路由
 // ============================================================
 const cf = require('./cf-ai.js');
+const cfTrainerDb = new Database(path.join(__dirname, 'cf-trainer.db'));
+cfTrainerDb.pragma('journal_mode = WAL');
+cf.setCfDb(cfTrainerDb);
 
 function getCfSession(userId, sessionId) {
   if (sessionId) {
@@ -359,7 +362,7 @@ function saveMessage(sessionId, role, content) {
   db.prepare('INSERT INTO cf_messages (session_id, role, content) VALUES (?, ?, ?)').run(sessionId, role, content);
 }
 
-// 抽题（难度/Tag/去重）
+// 抽题（优先从 cf-trainer.db 抽取，含中文题面；无匹配时回退全量题库）
 app.get('/api/cf/random', requireAuth, async (req, res) => {
   try {
     const minRating = req.query.min ? parseInt(req.query.min) : null;
@@ -368,10 +371,16 @@ app.get('/api/cf/random', requireAuth, async (req, res) => {
     const exclude = new Set(
       db.prepare('SELECT problem_key FROM cf_sessions WHERE user_id = ?').all(req.session.userId).map(r => r.problem_key).filter(Boolean)
     );
+    const opts = { minRating, maxRating, tags };
+    const picked = cf.pickRandomFromDb(opts, exclude);
+    if (picked) {
+      return res.json({ problem: picked, source: 'db' });
+    }
+    // 回退：全量题库随机抽（无中文题面）
     const problems = await cf.fetchProblemList();
-    const picked = cf.pickRandomProblem(problems, { minRating, maxRating, tags }, exclude);
-    if (!picked) return res.status(404).json({ error: '没有符合条件的题目（可能都刷过了，尝试放宽难度/标签）' });
-    res.json({ problem: picked });
+    const fallback = cf.pickRandomProblem(problems, opts, exclude);
+    if (!fallback) return res.status(404).json({ error: '没有符合条件的题目（可能都刷过了，尝试放宽难度/标签）' });
+    res.json({ problem: fallback, source: 'api' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

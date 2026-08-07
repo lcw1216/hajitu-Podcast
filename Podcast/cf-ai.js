@@ -98,6 +98,47 @@ function pickRandomProblem(problems, opts, excludeKeys) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// ============ 2b. 从 cf-trainer.db 抽题（优先，含中文题面） ============
+// 由 server.js 注入 db 连接
+let cfDb = null;
+function setCfDb(db) { cfDb = db; }
+
+function pickRandomFromDb(opts, excludeKeys) {
+  if (!cfDb) return null;
+  const { minRating, maxRating, tags } = opts;
+  let sql = 'SELECT * FROM cf_problems WHERE 1=1';
+  const params = [];
+  if (minRating != null) { sql += ' AND rating >= ?'; params.push(minRating); }
+  if (maxRating != null) { sql += ' AND rating <= ?'; params.push(maxRating); }
+  const t = (tags || []).filter(x => x);
+  if (t.length) {
+    // tag 匹配：tags 字段是 JSON 数组，需在 JS 侧过滤
+    sql += ' AND key NOT IN (SELECT key FROM cf_problems LIMIT 0)'; // placeholder 保持结构
+  }
+  const rows = cfDb.prepare(sql).all(...params);
+  let pool = rows;
+  if (excludeKeys && excludeKeys.size) pool = pool.filter(p => !excludeKeys.has(p.key));
+  if (t.length) {
+    pool = pool.filter(p => {
+      const pTags = JSON.parse(p.tags || '[]');
+      return t.every(tag => pTags.includes(tag));
+    });
+  }
+  if (!pool.length) return null;
+  const p = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    key: p.key,
+    contestId: p.contest_id,
+    index: p.index_code,
+    name: p.title,
+    rating: p.rating,
+    tags: JSON.parse(p.tags || '[]'),
+    link: p.link,
+    statementZh: p.statement_zh || '',
+    samples: p.samples ? JSON.parse(p.samples) : []
+  };
+}
+
 // ============ 3. 题面抓取（Cloudflare 可能拦截，失败时走用户粘贴模式） ============
 const CF_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
@@ -322,4 +363,4 @@ const VERDICT_CN = {
 };
 
 // ============ 导出给 server.js ============
-module.exports = { sleep, aesEncrypt, aesDecrypt, rateLimit, chatLimiter, submitLimiter, CF_AI_APIKEY, CF_AI_BASE_URL, CF_AI_MODEL, CF_SITE, CF_ENC_KEY, fetchProblemList, pickRandomProblem, fetchProblemStatement, aiStream, aiChat, cfLogin, cfSubmit, cfVerdict, VERDICT_CN };
+module.exports = { sleep, aesEncrypt, aesDecrypt, rateLimit, chatLimiter, submitLimiter, CF_AI_APIKEY, CF_AI_BASE_URL, CF_AI_MODEL, CF_SITE, CF_ENC_KEY, fetchProblemList, pickRandomProblem, pickRandomFromDb, setCfDb, fetchProblemStatement, aiStream, aiChat, cfLogin, cfSubmit, cfVerdict, VERDICT_CN };
