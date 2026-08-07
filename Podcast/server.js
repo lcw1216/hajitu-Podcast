@@ -426,7 +426,7 @@ app.post('/api/cf/chat', async (req, res) => {
   if (!cf.rateLimit(cf.chatLimiter, uid, 10, 60)) {
     return res.status(429).json({ error: '对话频率过快，请稍候（限 10 次/分钟）' });
   }
-  const { sessionId, message, problemKey, problemTitle, problemStatement, translation } = req.body;
+  const { sessionId, message, problemKey, problemTitle, analysisStatement } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: '消息不能为空' });
 
   let sid = sessionId;
@@ -446,23 +446,36 @@ app.post('/api/cf/chat', async (req, res) => {
   saveMessage(sid, 'user', message);
 
   const history = getSessionMessages(sid).slice(-8);
+  // 分析模式：仅当用户输入 6 并携带题面时，AI 才能看到题面
+  const isAnalysisMode = !!analysisStatement;
   const systemPrompt = [
-    { role: 'system', content:
-      '你是一个协助完成算法题的编程助手，使用中文交流。你的主要职责：根据用户描述的思路，编写完整的、可直接提交的算法题代码。' +
-      '当前题目: ' + (problemKey || '未知') + ' ' + (problemTitle || '') + '\n' +
-      '【行为准则】\n' +
-      '1. 你的核心工作是写代码：用户给出思路、算法或关键性质后，根据其思路输出完整代码。用户描述思路时，可以先确认理解，然后直接给出对应实现。\n' +
-      '2. 提示分 3 条逐条给出，绝不一次性全给：\n' +
-      '   - 第 1 条：核心思路方向（用什么算法/数据结构、关键观察）\n' +
-      '   - 第 2 条：关键性质或实现要点\n' +
-      '   - 第 3 条：最后一步的落点（边界、复杂度、易错点）\n' +
-      '   用户请求提示时，每次只能给 1 条。用户明确说"继续"/"下一条"/"还要提示"时，才给下一条。给完 3 条后如果用户还要求更多提示，只能提示"提示已给完，建议先动手实现"。\n' +
-      '3. 用户给出思路并说"写代码"/"生成代码"/"实现"时，输出完整的、可直接提交的 C++ 代码，【必须使用下面的模板】（模板内 solve() 留空处填写实现，模板结构不可改动，不可省略 #include 或 main 结构）：\n' +
-      '```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nusing ll = long long;\nvoid solve(){\n    \n}\nint main(){\n    ios::sync_with_stdio(false);\n    cin.tie(0);\n    cout.tie(0);\n    int t = 1;\n    //cin >> t;\n    while (t--){\n        solve();\n    }\n    return 0;\n}\n```\n' +
-      '4. 用户要求修改代码时：基于用户粘贴的代码或已生成的代码，输出修改后的完整代码（仍然基于模板结构），并简要说明改了什么。\n' +
-      '5. 用户说"提交"/"评测"时：确认代码已生成后，明确回复"可以提交"，不要阻止。\n' +
-      '6. 用户可以粘贴题面或代码片段请你分析；你没有看到完整题面时，可以询问必要的输入输出细节，但不要臆造题面。\n' +
-      '7. 保持中文回复，简洁专业。'
+    { role: 'system', content: isAnalysisMode ?
+      ('你是竞赛算法分析助手，使用中文交流。用户提供了题目题面，请分析这道题的解题思路，包括：算法选择、关键性质、复杂度分析，并给出完整的可提交 C++ 代码（必须使用模板）。\n' +
+       '当前题目: ' + (problemKey || '未知') + ' ' + (problemTitle || '') + '\n' +
+       '【题目题面】\n' + analysisStatement.slice(0, 6000) + '\n' +
+       '【要求】\n' +
+       '1. 先概括题意，再讲思路（算法/数据结构、为什么可行、复杂度），最后给完整代码。\n' +
+       '2. 代码必须使用下面的模板（模板内 solve() 留空处填写实现，模板结构不可改动）：\n' +
+       '```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nusing ll = long long;\nvoid solve(){\n    \n}\nint main(){\n    ios::sync_with_stdio(false);\n    cin.tie(0);\n    cout.tie(0);\n    int t = 1;\n    //cin >> t;\n    while (t--){\n        solve();\n    }\n    return 0;\n}\n```\n' +
+       '3. 保持中文回复，简洁专业。')
+      :
+      ('你是一个协助完成算法题的编程助手，使用中文交流。你的主要职责：根据用户描述的思路，编写完整的、可直接提交的算法题代码。\n' +
+       '当前题目: ' + (problemKey || '未知') + ' ' + (problemTitle || '') + '\n' +
+       '【重要：你看不到题面】\n' +
+       '你无法看到这道题的题面内容，也请勿依赖你记忆中的题目内容来推测题面。你只根据用户描述的思路、算法、输入输出来工作。\n' +
+       '【行为准则】\n' +
+       '1. 你的核心工作是写代码：用户给出思路、算法或关键性质后，根据其思路输出完整代码。用户描述思路时，可以先确认理解，然后直接给出对应实现。\n' +
+       '2. 提示分 3 条逐条给出，绝不一次性全给：\n' +
+       '   - 第 1 条：核心思路方向（用什么算法/数据结构、关键观察）\n' +
+       '   - 第 2 条：关键性质或实现要点\n' +
+       '   - 第 3 条：最后一步的落点（边界、复杂度、易错点）\n' +
+       '   用户请求提示时，每次只能给 1 条。用户明确说"继续"/"下一条"/"还要提示"时，才给下一条。给完 3 条后如果用户还要求更多提示，只能提示"提示已给完，建议先动手实现"。\n' +
+       '3. 用户给出思路并说"写代码"/"生成代码"/"实现"时，输出完整的、可直接提交的 C++ 代码，【必须使用下面的模板】（模板内 solve() 留空处填写实现，模板结构不可改动，不可省略 #include 或 main 结构）：\n' +
+       '```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nusing ll = long long;\nvoid solve(){\n    \n}\nint main(){\n    ios::sync_with_stdio(false);\n    cin.tie(0);\n    cout.tie(0);\n    int t = 1;\n    //cin >> t;\n    while (t--){\n        solve();\n    }\n    return 0;\n}\n```\n' +
+       '4. 用户要求修改代码时：基于用户粘贴的代码或已生成的代码，输出修改后的完整代码（仍然基于模板结构），并简要说明改了什么。\n' +
+       '5. 用户说"提交"/"评测"时：确认代码已生成后，明确回复"可以提交"，不要阻止。\n' +
+       '6. 用户没有提供题面时，不要臆造题面或输入输出格式，可以询问必要的输入输出细节。\n' +
+       '7. 保持中文回复，简洁专业。')
     }
   ];
   const messages = systemPrompt.concat(history);
