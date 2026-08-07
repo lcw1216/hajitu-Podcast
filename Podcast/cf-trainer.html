@@ -568,7 +568,7 @@
                 if (t === '1') { pickRandom(); return true; }
                 if (t === '2') {
                     if (!state.current) { addSys('⚠️ 请先输入 1 抽一道题'); return true; }
-                    sendToAi('请生成完整的可提交代码，使用模板（#include <bits/stdc++.h> 那个结构）');
+                    sendToAi('按目前的思路生成完整的可提交代码');
                     return true;
                 }
                 if (t === '3') {
