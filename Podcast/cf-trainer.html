@@ -336,15 +336,33 @@
             }
 
             function renderMarkdown(text) {
-                var s = esc(text);
+                var codeBlocks = [];
+                // 先提取代码块（原始代码存数组，仅转义一次），避免双重转义
+                var s = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function (_, lang, code) {
+                    var idx = codeBlocks.length;
+                    codeBlocks.push(code);
+                    return '\u0000CB' + idx + '\u0000';
+                });
+                s = esc(s);
                 s = renderLatex(s);
-                s = s.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
-                    return '<div class="cf-code-block"><button class="cf-code-copy">📋 复制</button><pre><code>' + esc(code) + '</code></pre></div>';
+                // 还原代码块（代码块内保留真实换行，pre 自然换行显示）
+                s = s.replace(/\u0000CB(\d+)\u0000/g, function (_, i) {
+                    var code = codeBlocks[parseInt(i)];
+                    return '<div class="cf-code-block"><button class="cf-code-copy" data-code="' + encodeURIComponent(code) + '">📋 复制</button><pre><code>' + esc(code) + '</code></pre></div>';
                 });
                 s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
                 s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
-                s = s.replace(/\n/g, '<br>');
-                return s;
+                // 仅对非代码块部分换行转 <br>（代码块内保留真实换行）
+                var out = '';
+                var parts = s.split(/(<div class="cf-code-block">[\s\S]*?<\/div>)/g);
+                for (var i = 0; i < parts.length; i++) {
+                    if (/^<div class="cf-code-block">/.test(parts[i])) {
+                        out += parts[i];
+                    } else {
+                        out += parts[i].replace(/\n/g, '<br>');
+                    }
+                }
+                return out;
             }
 
             // 从 Markdown 提取第一个代码块
@@ -563,14 +581,20 @@
                 document.body.removeChild(ta);
             }
 
-            // 代码块复制按钮（事件委托：动态内容也能生效）
+            // 代码块复制按钮（事件委托：动态内容也能生效，优先用原始代码 data-code）
             document.addEventListener('click', function (e) {
                 var btn = e.target.closest ? e.target.closest('.cf-code-copy') : null;
                 if (!btn) return;
-                var block = btn.parentElement;
-                var codeEl = block ? block.querySelector('pre code') : null;
-                if (!codeEl) return;
-                var code = codeEl.textContent || '';
+                var code = '';
+                if (btn.getAttribute('data-code')) {
+                    try { code = decodeURIComponent(btn.getAttribute('data-code')); } catch (err) { code = ''; }
+                }
+                if (!code) {
+                    var block = btn.parentElement;
+                    var codeEl = block ? block.querySelector('pre code') : null;
+                    if (codeEl) code = codeEl.textContent || '';
+                }
+                if (!code) return;
                 var done = function () {
                     btn.textContent = '✅ 已复制';
                     btn.classList.add('copied');

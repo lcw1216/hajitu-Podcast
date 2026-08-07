@@ -455,7 +455,7 @@ app.post('/api/cf/chat', async (req, res) => {
        '【题目题面】\n' + analysisStatement.slice(0, 6000) + '\n' +
        '【要求】\n' +
        '1. 先概括题意，再讲思路（算法/数据结构、为什么可行、复杂度），最后给完整代码。\n' +
-       '2. 代码必须使用下面的模板（模板内 solve() 留空处填写实现，模板结构不可改动）：\n' +
+       '2. 代码必须用 ```cpp 代码块包裹，且使用下面的模板（模板内 solve() 留空处填写实现，模板结构不可改动）：\n' +
        '```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nusing ll = long long;\nvoid solve(){\n    \n}\nint main(){\n    ios::sync_with_stdio(false);\n    cin.tie(0);\n    cout.tie(0);\n    int t = 1;\n    //cin >> t;\n    while (t--){\n        solve();\n    }\n    return 0;\n}\n```\n' +
        '3. 保持中文回复，简洁专业。')
       :
@@ -470,7 +470,7 @@ app.post('/api/cf/chat', async (req, res) => {
        '   - 第 2 条：关键性质或实现要点\n' +
        '   - 第 3 条：最后一步的落点（边界、复杂度、易错点）\n' +
        '   用户请求提示时，每次只能给 1 条。用户明确说"继续"/"下一条"/"还要提示"时，才给下一条。给完 3 条后如果用户还要求更多提示，只能提示"提示已给完，建议先动手实现"。\n' +
-       '3. 用户给出思路并说"写代码"/"生成代码"/"实现"时，输出完整的、可直接提交的 C++ 代码，【必须使用下面的模板】（模板内 solve() 留空处填写实现，模板结构不可改动，不可省略 #include 或 main 结构）：\n' +
+       '3. 用户给出思路并说"写代码"/"生成代码"/"实现"时，输出完整的、可直接提交的 C++ 代码。代码必须用 ```cpp 代码块包裹，且【必须使用下面的模板】（模板内 solve() 留空处填写实现，模板结构不可改动，不可省略 #include 或 main 结构）：\n' +
        '```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nusing ll = long long;\nvoid solve(){\n    \n}\nint main(){\n    ios::sync_with_stdio(false);\n    cin.tie(0);\n    cout.tie(0);\n    int t = 1;\n    //cin >> t;\n    while (t--){\n        solve();\n    }\n    return 0;\n}\n```\n' +
        '4. 用户要求修改代码时：基于用户粘贴的代码或已生成的代码，输出修改后的完整代码（仍然基于模板结构），并简要说明改了什么。\n' +
        '5. 用户说"提交"/"评测"时：确认代码已生成后，明确回复"可以提交"，不要阻止。\n' +
