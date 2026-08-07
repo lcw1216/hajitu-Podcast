@@ -477,7 +477,7 @@
                             chip.textContent = '📋 查看中文题面';
                             chip.addEventListener('click', openStatementModal);
                             m.msg.appendChild(chip);
-                            addSys('输入 4 要提示，输入 2 生成代码，或直接和我讨论思路');
+                            addSys('输入 4 要提示，5 重复题面，2 生成代码，或直接和我讨论思路');
                         }
                     });
                 });
@@ -646,6 +646,11 @@
                     sendToAi('请给我一条提示');
                     return true;
                 }
+                if (t === '5') {
+                    if (!state.current) { addSys('⚠️ 请先输入 1 抽一道题'); return true; }
+                    openStatementModal();
+                    return true;
+                }
                 return false;
             }
 
@@ -700,7 +705,7 @@
                 loadAccount();
                 loadHistory();
                 if (messagesEl.children.length === 0) {
-                    addSys('欢迎使用 CF-AI 刷题助手！<br>📌 输入数字操作：<br>1️⃣ 抽一道新题<br>2️⃣ 生成代码<br>3️⃣ 提交测评<br>4️⃣ 给提示<br><br>也可以直接描述思路和我讨论~');
+                    addSys('欢迎使用 CF-AI 刷题助手！<br>📌 输入数字操作：<br>1️⃣ 抽一道新题<br>2️⃣ 生成代码<br>3️⃣ 提交测评<br>4️⃣ 给提示<br>5️⃣ 重复显示题面<br><br>也可以直接描述思路和我讨论~');
                 }
             });
         })();
