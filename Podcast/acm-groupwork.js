@@ -1,11 +1,35 @@
 (function() {
-  var PROBLEMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  var PROBLEMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
   var POLL_INTERVAL = 12000;
   var activityTimer = null;
   var isRegisterMode = false;
   var currentUser = null;
   var viewingUser = null;
   var pendingDeleteInfo = null;
+  var lastLoadedCode = '';
+  var codeCtx = null;
+  var versionCtx = null;
+  var previewVersionId = null;
+  var previewCode = '';
+  var currentContestId = null;
+  var currentScoreboard = null;
+  var lastSubmittedSet = {};
+  var lastScoreboardKey = '';
+
+  var CPP_KEYWORDS = {};
+  ('alignas alignof asm auto bool break case catch char class const constexpr const_cast continue '
+    + 'decltype default delete do double dynamic_cast else enum explicit export extern false float for '
+    + 'friend goto if inline int long mutable namespace new noexcept nullptr operator private protected '
+    + 'public register reinterpret_cast return short signed sizeof static static_assert static_cast struct '
+    + 'switch template this throw true try typedef typeid typename union unsigned using virtual void '
+    + 'volatile wchar_t while override final').split(' ').forEach(function(w) { CPP_KEYWORDS[w] = true; });
+
+  var CPP_TYPES = {};
+  ('std string vector map set unordered_map unordered_set queue stack deque list pair tuple array cout cin '
+    + 'cerr endl printf scanf puts getline sort max min swap push_back pop_back push front back size empty '
+    + 'begin end iterator int64_t uint64_t size_t').split(' ').forEach(function(w) { CPP_TYPES[w] = true; });
+
+  var CPP_TOKEN_RE = /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|\n?[ \t]*#[^\n]*|\b(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)[uUlLfF]*\b|\b[A-Za-z_]\w*\b|\s+|[^\s]/g;
 
   function $(id) { return document.getElementById(id); }
 
@@ -79,6 +103,144 @@
     }
   }
 
+  // ==================== 轻提示 ====================
+  function showToast(message, type) {
+    var container = $('toast-container');
+    if (!container) return;
+    var toast = document.createElement('div');
+    toast.className = 'acm-toast' + (type ? ' acm-toast-' + type : '');
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(function() { toast.classList.add('show'); }, 20);
+    setTimeout(function() {
+      toast.classList.remove('show');
+      setTimeout(function() {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 250);
+    }, 2600);
+  }
+
+  // ==================== C++ 语法高亮 ====================
+  function highlightCpp(code) {
+    if (!code) return '';
+    CPP_TOKEN_RE.lastIndex = 0;
+    var html = '';
+    var match;
+    while ((match = CPP_TOKEN_RE.exec(code)) !== null) {
+      var token = match[0];
+      var cls = '';
+      var first = token.charAt(0);
+
+      if (token.indexOf('//') === 0 || token.indexOf('/*') === 0) {
+        cls = 'com';
+      } else if (first === '"' || first === "'") {
+        cls = 'str';
+      } else if (/^\n?[ \t]*#/.test(token)) {
+        cls = 'pre';
+      } else if (/^(?:0[xX][0-9a-fA-F]+|\d)/.test(token)) {
+        cls = 'num';
+      } else if (/^[A-Za-z_]/.test(token)) {
+        if (CPP_KEYWORDS[token]) {
+          cls = 'kw';
+        } else if (code.charAt(CPP_TOKEN_RE.lastIndex) === '(') {
+          cls = 'fn';
+        } else if (CPP_TYPES[token]) {
+          cls = 'type';
+        } else if (/^[A-Z]/.test(token)) {
+          cls = 'type';
+        }
+      }
+
+      html += cls
+        ? '<span class="tok-' + cls + '">' + escapeHtml(token) + '</span>'
+        : escapeHtml(token);
+    }
+    return html;
+  }
+
+  function updateCodeHighlight() {
+    var highlight = $('code-highlight');
+    var editor = $('code-editor');
+    if (!highlight || !editor) return;
+    highlight.innerHTML = highlightCpp(editor.value) + '\n';
+    highlight.scrollTop = editor.scrollTop;
+    highlight.scrollLeft = editor.scrollLeft;
+  }
+
+  function syncCodeScroll() {
+    var highlight = $('code-highlight');
+    var editor = $('code-editor');
+    if (!highlight || !editor) return;
+    highlight.scrollTop = editor.scrollTop;
+    highlight.scrollLeft = editor.scrollLeft;
+  }
+
+  function getDisplayedCode() {
+    if (previewVersionId !== null) return previewCode;
+    var editorMode = $('code-editor-wrap').style.display !== 'none';
+    return editorMode ? $('code-editor').value : lastLoadedCode;
+  }
+
+  function copyCode() {
+    var text = getDisplayedCode();
+
+    if (!text) {
+      showToast('没有可复制的代码', 'error');
+      return;
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('代码已复制', 'success');
+      }).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+
+    function fallbackCopy() {
+      var temp = document.createElement('textarea');
+      temp.value = text;
+      temp.style.position = 'fixed';
+      temp.style.opacity = '0';
+      document.body.appendChild(temp);
+      temp.select();
+      var ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (e) {
+        ok = false;
+      }
+      document.body.removeChild(temp);
+      showToast(ok ? '代码已复制' : '复制失败，请手动选择复制', ok ? 'success' : 'error');
+    }
+  }
+
+  // ==================== 全屏查看代码 ====================
+  function openFullscreenCode() {
+    var text = getDisplayedCode();
+    if (!text) {
+      showToast('没有可查看的代码', 'error');
+      return;
+    }
+
+    var title = $('problem-title').textContent || '代码';
+    var branch = $('branch-select').value;
+    if (previewVersionId !== null) {
+      var sel = $('version-select');
+      title += ' · ' + sel.options[sel.selectedIndex].textContent;
+    }
+    $('fullscreen-title').textContent = branch ? title + ' · ' + branch : title;
+    $('fullscreen-code').innerHTML = highlightCpp(text);
+    $('code-fullscreen').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFullscreenCode() {
+    $('code-fullscreen').style.display = 'none';
+    $('fullscreen-code').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
   // ==================== 初始化 ====================
   function init() {
     ensureUser().then(function(user) {
@@ -140,17 +302,52 @@
       if (parts[1]) setHash('contest/' + parts[1]);
     });
     $('btn-submit-code').addEventListener('click', submitCode);
-    $('btn-delete-code').addEventListener('click', showDeleteConfirm);
-    $('btn-confirm-delete').addEventListener('click', deleteCode);
+    $('btn-delete-code').addEventListener('click', function() {
+      showDeleteConfirm('code');
+    });
+    $('btn-confirm-delete').addEventListener('click', confirmDelete);
     $('btn-cancel-delete').addEventListener('click', hideDeleteConfirm);
+    $('btn-rename-version').addEventListener('click', openRenameVersion);
+    $('btn-confirm-rename').addEventListener('click', confirmRenameVersion);
+    $('btn-cancel-rename').addEventListener('click', closeRenameVersion);
+    $('btn-delete-version').addEventListener('click', function() {
+      showDeleteConfirm('version');
+    });
+    $('rename-version-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') confirmRenameVersion();
+    });
     $('branch-select').addEventListener('change', onBranchChange);
     $('contest-branch-select').addEventListener('change', onContestBranchChange);
+    $('btn-copy-code').addEventListener('click', copyCode);
+    $('btn-fullscreen-code').addEventListener('click', openFullscreenCode);
+    $('btn-close-fullscreen').addEventListener('click', closeFullscreenCode);
+    $('version-select').addEventListener('change', onVersionChange);
+    $('code-fullscreen').addEventListener('click', function(e) {
+      if (e.target === this) closeFullscreenCode();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && $('code-fullscreen').style.display !== 'none') {
+        closeFullscreenCode();
+      }
+    });
+    $('code-editor').addEventListener('input', updateCodeHighlight);
+    $('code-editor').addEventListener('input', updateSubmitState);
+    $('code-editor').addEventListener('scroll', syncCodeScroll);
 
     $('create-contest-modal').addEventListener('click', function(e) {
       if (e.target === this) hideCreateContestModal();
     });
     $('delete-confirm-modal').addEventListener('click', function(e) {
       if (e.target === this) hideDeleteConfirm();
+    });
+    $('rename-version-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeRenameVersion();
+    });
+    $('btn-add-record').addEventListener('click', openAddRecordModal);
+    $('btn-confirm-record').addEventListener('click', addRecord);
+    $('btn-cancel-record').addEventListener('click', closeAddRecordModal);
+    $('add-record-modal').addEventListener('click', function(e) {
+      if (e.target === this) closeAddRecordModal();
     });
   }
 
@@ -232,7 +429,6 @@
     var html = '';
     for (var i = 0; i < contests.length; i++) {
       var c = contests[i];
-      var isCreator = currentUser && c.creator_id === currentUser.id;
       html += '<div class="acm-contest-card" data-id="' + c.id + '">';
       html += '<div class="acm-contest-card-left">';
       html += '<div class="acm-contest-card-name">' + escapeHtml(c.name) + '</div>';
@@ -242,9 +438,7 @@
       html += '</div>';
       html += '</div>';
       html += '<div class="acm-contest-card-right">';
-      if (isCreator) {
-        html += '<button class="acm-btn acm-btn-danger acm-btn-xs btn-delete-contest" data-id="' + c.id + '" data-name="' + escapeHtml(c.name) + '">删除</button>';
-      }
+      html += '<button class="acm-btn acm-btn-danger acm-btn-xs btn-delete-contest" data-id="' + c.id + '" data-name="' + escapeHtml(c.name) + '">删除</button>';
       html += '</div>';
       html += '</div>';
     }
@@ -268,7 +462,7 @@
           api('/api/contests/' + id, { method: 'DELETE' }).then(function() {
             showLobby();
           }).catch(function(err) {
-            alert('删除失败：' + err.message);
+            showToast('删除失败：' + err.message, 'error');
           });
         }
       });
@@ -311,6 +505,10 @@
   function showContestDetail(contestId) {
     showView('contest');
     stopPolling();
+    currentContestId = String(contestId);
+    currentScoreboard = null;
+    lastSubmittedSet = {};
+    lastScoreboardKey = '';
     $('contest-username').textContent = currentUser ? currentUser.username : '';
 
     api('/api/contests/' + contestId).then(function(data) {
@@ -339,7 +537,10 @@
       loadContestData(contestId);
     });
 
-    activityTimer = setInterval(function() { loadActivities(contestId); }, POLL_INTERVAL);
+    activityTimer = setInterval(function() {
+      loadActivities(contestId);
+      loadScoreboard(contestId);
+    }, POLL_INTERVAL);
   }
 
   function onContestBranchChange() {
@@ -350,6 +551,7 @@
 
   function loadContestData(contestId) {
     loadProblems(contestId);
+    loadScoreboard(contestId);
     loadActivities(contestId);
   }
 
@@ -363,31 +565,176 @@
           submittedSet[s.problem] = true;
         }
       }
-      renderProblemGrid(contestId, submittedSet);
+      if (currentContestId !== String(contestId)) return;
+      lastSubmittedSet = submittedSet;
+      renderProblemGrid(contestId, submittedSet, currentScoreboard);
     });
   }
 
-  function renderProblemGrid(contestId, submittedSet) {
+  function renderProblemGrid(contestId, submittedSet, scoreboard) {
+    var statusMap = {};
+    if (scoreboard && scoreboard.problems) {
+      for (var i = 0; i < scoreboard.problems.length; i++) {
+        statusMap[scoreboard.problems[i].problem] = scoreboard.problems[i];
+      }
+    }
+
     var grid = $('problem-grid');
     var html = '';
-    for (var i = 0; i < PROBLEMS.length; i++) {
-      var p = PROBLEMS[i];
-      var isSubmitted = submittedSet[p];
-      html += '<div class="acm-problem-card' + (isSubmitted ? ' submitted' : '') + '" data-contest="' + contestId + '" data-problem="' + p + '">';
+    for (var j = 0; j < PROBLEMS.length; j++) {
+      var p = PROBLEMS[j];
+      var info = statusMap[p];
+      var cardClass = '';
+      var statusClass = '';
+      var statusText = '未提交';
+
+      if (info && info.solved) {
+        cardClass = ' ac';
+        statusClass = ' status-ac';
+        statusText = 'AC';
+      } else if (info && info.status) {
+        cardClass = ' attempted';
+        statusClass = ' status-' + info.status.toLowerCase();
+        statusText = info.status + (info.attempts > 1 ? ' ×' + info.attempts : '');
+      }
+
+      html += '<div class="acm-problem-card' + cardClass + '" data-contest="' + contestId + '" data-problem="' + p + '">';
       html += '<span class="acm-problem-letter">' + p + '</span>';
-      html += '<span class="acm-problem-status">' + (isSubmitted ? '已提交' : '未提交') + '</span>';
+      html += '<span class="acm-problem-status' + statusClass + '">' + statusText + '</span>';
+      if (info && info.penalty > 0) {
+        html += '<span class="acm-problem-penalty">罚时 ' + info.penalty + '</span>';
+      }
+      if (submittedSet[p]) {
+        html += '<span class="acm-problem-code">代码已上传</span>';
+      }
       html += '</div>';
     }
     grid.innerHTML = html;
 
     var cards = grid.querySelectorAll('.acm-problem-card');
-    for (var j = 0; j < cards.length; j++) {
-      cards[j].addEventListener('click', function() {
+    for (var k = 0; k < cards.length; k++) {
+      cards[k].addEventListener('click', function() {
         var cid = this.getAttribute('data-contest');
         var prob = this.getAttribute('data-problem');
         setHash('contest/' + cid + '/problem/' + prob);
       });
     }
+  }
+
+  // ==================== 记分板与提交记录 ====================
+  function parseRecordTime(str) {
+    if (!str) return null;
+    if (/Z$|[+-]\d{2}:\d{2}$/.test(str)) return new Date(str);
+    return new Date(str.replace(' ', 'T') + 'Z');
+  }
+
+  function formatRecordTime(str) {
+    var date = parseRecordTime(str);
+    if (!date || isNaN(date.getTime())) return str || '';
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+    return pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' '
+      + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
+
+  function formatPenalty(minutes) {
+    var total = Math.max(0, minutes || 0);
+    if (total === 0) return '0 分钟';
+    var h = Math.floor(total / 60);
+    var m = total % 60;
+    if (h === 0) return m + ' 分钟';
+    return h + ' 小时' + (m ? ' ' + m + ' 分' : '');
+  }
+
+  function loadScoreboard(contestId) {
+    api('/api/contests/' + contestId + '/scoreboard').then(function(data) {
+      if (currentContestId !== String(contestId)) return;
+      currentScoreboard = data;
+
+      var key = JSON.stringify(data);
+      if (key === lastScoreboardKey) return;
+      lastScoreboardKey = key;
+
+      renderScoreboard(data);
+      renderRecords(data.records);
+      renderProblemGrid(contestId, lastSubmittedSet, data);
+    }).catch(function() {});
+  }
+
+  function renderScoreboard(data) {
+    $('score-solved').textContent = data.solvedCount + ' / ' + data.totalProblems;
+    $('score-penalty').textContent = formatPenalty(data.totalPenalty);
+    $('score-records').textContent = (data.records ? data.records.length : 0) + ' 条';
+  }
+
+  function renderRecords(records) {
+    var container = $('record-list');
+    if (!container) return;
+
+    if (!records || records.length === 0) {
+      container.innerHTML = '<div class="acm-empty">暂无提交记录</div>';
+      return;
+    }
+
+    var html = '';
+    // 服务端按时间升序返回，这里从新到旧展示
+    for (var i = records.length - 1; i >= 0; i--) {
+      var r = records[i];
+      html += '<div class="acm-record-row">';
+      html += '<span class="acm-record-time">' + formatRecordTime(r.created_at) + '</span>';
+      html += '<span class="acm-record-problem">' + r.problem + '题</span>';
+      html += '<span class="acm-status-badge status-' + r.status.toLowerCase() + '">' + r.status + '</span>';
+      html += '<span class="acm-record-note' + (r.counted ? ' acm-record-note-counted' : '') + '">'
+        + escapeHtml(r.note || '') + ' · ' + escapeHtml(r.creator_name) + '</span>';
+      html += '<button class="acm-btn acm-btn-danger acm-btn-xs btn-delete-record" data-id="' + r.id + '">删除</button>';
+      html += '</div>';
+    }
+    container.innerHTML = html;
+
+    var btns = container.querySelectorAll('.btn-delete-record');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].addEventListener('click', function() {
+        showDeleteConfirm('record', this.getAttribute('data-id'));
+      });
+    }
+  }
+
+  function openAddRecordModal() {
+    var select = $('record-problem');
+    if (select.options.length === 0) {
+      for (var i = 0; i < PROBLEMS.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = PROBLEMS[i];
+        opt.textContent = PROBLEMS[i] + '题';
+        select.appendChild(opt);
+      }
+    }
+    select.value = PROBLEMS[0];
+    $('record-status').value = 'AC';
+    $('add-record-modal').style.display = '';
+  }
+
+  function closeAddRecordModal() {
+    $('add-record-modal').style.display = 'none';
+  }
+
+  function addRecord() {
+    if (!currentContestId) return;
+    var contestId = currentContestId;
+    var problem = $('record-problem').value;
+    var status = $('record-status').value;
+
+    api('/api/contests/' + contestId + '/records', {
+      method: 'POST',
+      body: { problem: problem, status: status }
+    }).then(function() {
+      closeAddRecordModal();
+      showToast('记录已添加', 'success');
+      lastScoreboardKey = '';
+      loadScoreboard(contestId);
+    }).catch(function(err) {
+      closeAddRecordModal();
+      showToast('添加失败：' + err.message, 'error');
+    });
   }
 
   function loadActivities(contestId) {
@@ -506,22 +853,160 @@
         }
       }
 
+      lastLoadedCode = found && found.code ? found.code : '';
+      codeCtx = { contestId: contestId, problem: problem, owner: branchUser, isMe: isMe };
+      previewVersionId = null;
+      previewCode = '';
+      versionCtx = null;
+      $('version-bar').style.display = 'none';
+      $('version-select').innerHTML = '';
+
       $('code-empty').style.display = 'none';
       $('code-viewer').style.display = 'none';
-      $('code-editor').style.display = 'none';
+      $('code-editor-wrap').style.display = 'none';
       $('code-actions').style.display = 'none';
+      $('code-toolbar').style.display = 'none';
 
-      if (isMe) {
-        $('code-editor').style.display = '';
-        $('code-actions').style.display = '';
-        $('code-editor').value = found && found.code ? found.code : '';
-      } else if (found && found.code) {
-        $('code-viewer').style.display = '';
-        $('code-viewer').textContent = found.code;
-      } else {
-        $('code-empty').style.display = '';
+      renderCodeBase();
+
+      if (lastLoadedCode && branchUser) {
+        loadVersions(contestId, problem, branchUser);
       }
     }).catch(function() {});
+  }
+
+  function renderCodeBase() {
+    var isMe = codeCtx && codeCtx.isMe;
+
+    $('code-empty').style.display = 'none';
+    $('code-viewer').style.display = 'none';
+    $('code-editor-wrap').style.display = 'none';
+    $('code-actions').style.display = 'none';
+    $('code-toolbar').style.display = 'none';
+
+    if (isMe) {
+      $('code-editor-wrap').style.display = '';
+      $('code-toolbar').style.display = '';
+      $('code-actions').style.display = '';
+      $('code-editor').value = lastLoadedCode;
+      updateCodeHighlight();
+      updateSubmitState();
+    } else if (lastLoadedCode) {
+      $('code-viewer').style.display = '';
+      $('code-viewer').innerHTML = highlightCpp(lastLoadedCode);
+      $('code-toolbar').style.display = '';
+    } else {
+      $('code-empty').style.display = '';
+    }
+  }
+
+  function loadVersions(contestId, problem, owner) {
+    api('/api/contests/' + contestId + '/submissions/' + problem + '/versions?owner='
+      + encodeURIComponent(owner))
+      .then(function(data) {
+        var versions = data.versions || [];
+        if (!versions.length || !codeCtx || codeCtx.owner !== owner || codeCtx.problem !== problem) return;
+
+        var select = $('version-select');
+        select.innerHTML = '';
+        // 接口按时间升序返回，下拉列表从新到旧展示
+        for (var i = versions.length - 1; i >= 0; i--) {
+          var opt = document.createElement('option');
+          opt.value = String(i);
+          var label = 'v' + (i + 1);
+          if (versions[i].name) label += ' · ' + versions[i].name;
+          label += ' · ' + timeAgo(versions[i].created_at);
+          if (i === versions.length - 1) label += '（最新）';
+          opt.textContent = label;
+          select.appendChild(opt);
+        }
+        select.value = String(versions.length - 1);
+        select.setAttribute('data-latest', String(versions.length - 1));
+
+        versionCtx = { versions: versions, owner: owner };
+        $('version-hint').textContent = '共 ' + versions.length + ' 个版本';
+        $('version-bar').style.display = '';
+
+        var canManage = currentUser && currentUser.username === owner;
+        $('btn-rename-version').style.display = canManage ? '' : 'none';
+        $('btn-delete-version').style.display = canManage ? '' : 'none';
+      })
+      .catch(function() {});
+  }
+
+  function selectedVersion() {
+    if (!versionCtx) return null;
+    var index = parseInt($('version-select').value, 10);
+    if (isNaN(index)) return null;
+    return versionCtx.versions[index] || null;
+  }
+
+  function onVersionChange() {
+    if (!versionCtx) return;
+
+    var select = $('version-select');
+    var index = parseInt(select.value, 10);
+    var latest = parseInt(select.getAttribute('data-latest'), 10);
+    if (isNaN(index) || isNaN(latest)) return;
+
+    if (index === latest) {
+      previewVersionId = null;
+      previewCode = '';
+      $('version-hint').textContent = '共 ' + versionCtx.versions.length + ' 个版本';
+      renderCodeBase();
+      return;
+    }
+
+    var version = versionCtx.versions[index];
+    previewVersionId = version.id;
+    previewCode = version.code || '';
+
+    $('code-empty').style.display = 'none';
+    $('code-editor-wrap').style.display = 'none';
+    $('code-actions').style.display = 'none';
+    $('code-viewer').style.display = '';
+    $('code-viewer').innerHTML = highlightCpp(previewCode);
+    $('code-toolbar').style.display = '';
+    $('version-hint').textContent = '正在查看历史版本 v' + (index + 1) + '（只读）';
+  }
+
+  function openRenameVersion() {
+    var version = selectedVersion();
+    if (!version) return;
+    $('rename-version-input').value = version.name || '';
+    $('rename-version-modal').style.display = '';
+    $('rename-version-input').focus();
+  }
+
+  function closeRenameVersion() {
+    $('rename-version-modal').style.display = 'none';
+  }
+
+  function confirmRenameVersion() {
+    var version = selectedVersion();
+    if (!version) return;
+
+    api('/api/submission-versions/' + version.id, {
+      method: 'PUT',
+      body: { name: $('rename-version-input').value.trim() }
+    }).then(function() {
+      closeRenameVersion();
+      showToast('版本已重命名', 'success');
+      refreshCodeView();
+    }).catch(function(err) {
+      closeRenameVersion();
+      showToast('重命名失败：' + err.message, 'error');
+    });
+  }
+
+  function refreshCodeView() {
+    if (!codeCtx) return;
+    loadProblemData(codeCtx.contestId, codeCtx.problem, codeCtx.owner);
+  }
+
+  function updateSubmitState() {
+    if ($('code-editor-wrap').style.display === 'none') return;
+    $('btn-submit-code').disabled = $('code-editor').value === lastLoadedCode;
   }
 
   function submitCode() {
@@ -534,23 +1019,84 @@
 
     var code = $('code-editor').value;
 
+    if (code === lastLoadedCode) {
+      showToast('代码与上一版本相同，无需重复提交', 'error');
+      return;
+    }
+
     api('/api/contests/' + contestId + '/submissions/' + problem, {
       method: 'PUT',
       body: { code: code }
     }).then(function() {
-      alert('提交成功！');
+      showToast('提交成功', 'success');
       loadProblemData(contestId, problem, currentUser ? currentUser.username : null);
     }).catch(function(err) {
-      alert('提交失败：' + err.message);
+      showToast('提交失败：' + err.message, 'error');
     });
   }
 
-  function showDeleteConfirm() {
+  function showDeleteConfirm(type, recordId) {
+    if (type === 'version') {
+      pendingDeleteInfo = { type: 'version' };
+      $('delete-confirm-text').textContent = '确定要删除选中的历史版本吗？此操作不可撤销。';
+    } else if (type === 'record') {
+      pendingDeleteInfo = { type: 'record', recordId: recordId };
+      $('delete-confirm-text').textContent = '确定要删除这条提交记录吗？罚时会被重新计算。';
+    } else {
+      pendingDeleteInfo = { type: 'code' };
+      $('delete-confirm-text').textContent = '确定要删除该题目的提交吗？此操作不可撤销。';
+    }
     $('delete-confirm-modal').style.display = '';
   }
 
   function hideDeleteConfirm() {
+    pendingDeleteInfo = null;
     $('delete-confirm-modal').style.display = 'none';
+  }
+
+  function confirmDelete() {
+    if (!pendingDeleteInfo) return;
+    if (pendingDeleteInfo.type === 'version') {
+      deleteSelectedVersion();
+    } else if (pendingDeleteInfo.type === 'record') {
+      deleteRecord(pendingDeleteInfo.recordId);
+    } else {
+      deleteCode();
+    }
+  }
+
+  function deleteRecord(recordId) {
+    hideDeleteConfirm();
+    if (!currentContestId || !recordId) return;
+
+    api('/api/contests/' + currentContestId + '/records/' + recordId, { method: 'DELETE' })
+      .then(function() {
+        showToast('记录已删除', 'success');
+        lastScoreboardKey = '';
+        loadScoreboard(currentContestId);
+      })
+      .catch(function(err) {
+        showToast('删除失败：' + err.message, 'error');
+      });
+  }
+
+  function deleteSelectedVersion() {
+    var version = selectedVersion();
+    if (!version) {
+      hideDeleteConfirm();
+      return;
+    }
+
+    api('/api/submission-versions/' + version.id, { method: 'DELETE' })
+      .then(function() {
+        hideDeleteConfirm();
+        showToast('版本已删除', 'success');
+        refreshCodeView();
+      })
+      .catch(function(err) {
+        hideDeleteConfirm();
+        showToast('删除失败：' + err.message, 'error');
+      });
   }
 
   function deleteCode() {
@@ -565,11 +1111,11 @@
 
     api('/api/contests/' + contestId + '/submissions/' + problem, { method: 'DELETE' })
       .then(function() {
-        alert('删除成功！');
+        showToast('删除成功', 'success');
         loadProblemData(contestId, problem, currentUser ? currentUser.username : null);
       })
       .catch(function(err) {
-        alert('删除失败：' + err.message);
+        showToast('删除失败：' + err.message, 'error');
       });
   }
 

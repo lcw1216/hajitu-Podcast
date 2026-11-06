@@ -23,6 +23,7 @@
     </nav>
 
     <div class="main-container" id="app-root">
+        <div class="acm-toast-container" id="toast-container"></div>
         <div id="view-login" class="acm-view" style="display:none;">
             <div class="acm-auth-box">
                 <h2 class="acm-auth-title" id="auth-title">登录</h2>
@@ -66,10 +67,24 @@
                     <div class="acm-topbar-spacer"></div>
                 </div>
                 <h2 class="acm-contest-title" id="contest-title"></h2>
+                <div class="acm-scoreboard" id="contest-scoreboard">
+                    <div class="acm-scoreboard-item">
+                        <span class="acm-scoreboard-label">已过题</span>
+                        <span class="acm-scoreboard-value acm-score-solved" id="score-solved">-</span>
+                    </div>
+                    <div class="acm-scoreboard-item">
+                        <span class="acm-scoreboard-label">总罚时</span>
+                        <span class="acm-scoreboard-value acm-score-penalty" id="score-penalty">-</span>
+                    </div>
+                    <div class="acm-scoreboard-item">
+                        <span class="acm-scoreboard-label">提交记录</span>
+                        <span class="acm-scoreboard-value" id="score-records">-</span>
+                    </div>
+                </div>
                 <div class="acm-contest-body">
                     <div class="acm-contest-main">
                         <div class="acm-section-header">
-                            <h3 class="acm-section-title">A~L 共12道题</h3>
+                            <h3 class="acm-section-title">A~N 共14道题</h3>
                         </div>
                         <div class="acm-problem-grid" id="problem-grid"></div>
                     </div>
@@ -80,6 +95,15 @@
                         <div class="acm-activity-list" id="activity-list">
                             <div class="acm-empty">暂无动态</div>
                         </div>
+                    </div>
+                </div>
+                <div class="acm-records-section">
+                    <div class="acm-records-header">
+                        <h3 class="acm-section-title">提交记录</h3>
+                        <button class="acm-btn acm-btn-primary acm-btn-sm" id="btn-add-record">+ 添加记录</button>
+                    </div>
+                    <div class="acm-record-list" id="record-list">
+                        <div class="acm-empty">暂无提交记录</div>
                     </div>
                 </div>
             </div>
@@ -101,13 +125,59 @@
                     </div>
                 </div>
                 <div class="acm-code-area" id="code-area">
+                    <div class="acm-code-toolbar" id="code-toolbar" style="display:none;">
+                        <span class="acm-code-lang">C++</span>
+                        <div class="acm-code-toolbar-actions">
+                            <button class="acm-btn acm-btn-sm acm-btn-primary" id="btn-fullscreen-code" title="全屏查看代码">全屏</button>
+                            <button class="acm-btn acm-btn-sm acm-code-copy" id="btn-copy-code" title="复制全部代码">复制</button>
+                        </div>
+                    </div>
                     <div class="acm-empty" id="code-empty">尚未提交代码</div>
                     <pre class="acm-code-viewer" id="code-viewer" style="display:none;"></pre>
-                    <textarea class="acm-code-editor" id="code-editor" style="display:none;" placeholder="在此粘贴代码..." spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+                    <div class="acm-code-editor-wrap" id="code-editor-wrap" style="display:none;">
+                        <pre class="acm-code-highlight" id="code-highlight" aria-hidden="true"></pre>
+                        <textarea class="acm-code-editor" id="code-editor" wrap="off" placeholder="在此粘贴代码..." spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+                    </div>
+                </div>
+                <div class="acm-version-bar" id="version-bar" style="display:none;">
+                    <label class="acm-version-label" for="version-select">历史版本</label>
+                    <select id="version-select" class="acm-select acm-version-select"></select>
+                    <span class="acm-version-hint" id="version-hint"></span>
+                    <button class="acm-btn acm-btn-sm" id="btn-rename-version" style="display:none;">重命名</button>
+                    <button class="acm-btn acm-btn-sm acm-btn-danger" id="btn-delete-version" style="display:none;">删除版本</button>
                 </div>
                 <div class="acm-code-actions" id="code-actions" style="display:none;">
                     <button class="acm-btn acm-btn-primary" id="btn-submit-code">提交</button>
                     <button class="acm-btn acm-btn-danger" id="btn-delete-code">删除</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-record-modal" class="acm-modal" style="display:none;">
+            <div class="acm-modal-overlay"></div>
+            <div class="acm-modal-content box acm-modal-sm">
+                <h3>添加提交记录</h3>
+                <div class="acm-record-form">
+                    <label class="acm-record-field">
+                        <span>题目</span>
+                        <select id="record-problem" class="acm-select"></select>
+                    </label>
+                    <label class="acm-record-field">
+                        <span>判题结果</span>
+                        <select id="record-status" class="acm-select">
+                            <option value="AC">AC</option>
+                            <option value="WA">WA</option>
+                            <option value="TLE">TLE</option>
+                            <option value="RE">RE</option>
+                            <option value="CE">CE</option>
+                            <option value="PE">PE</option>
+                        </select>
+                    </label>
+                </div>
+                <p class="acm-record-tip">WA / TLE / RE / PE 每次计 20 分钟罚时；CE 不计罚；首次 AC 之前的记录才计入罚时。</p>
+                <div class="acm-modal-actions">
+                    <button class="acm-btn acm-btn-primary" id="btn-confirm-record">添加</button>
+                    <button class="acm-btn" id="btn-cancel-record">取消</button>
                 </div>
             </div>
         </div>
@@ -129,10 +199,34 @@
             <div class="acm-modal-overlay"></div>
             <div class="acm-modal-content box acm-modal-sm">
                 <h3>确认删除</h3>
-                <p>确定要删除该题目的提交吗？此操作不可撤销。</p>
+                <p id="delete-confirm-text">确定要删除该题目的提交吗？此操作不可撤销。</p>
                 <div class="acm-modal-actions">
                     <button class="acm-btn acm-btn-danger" id="btn-confirm-delete">确认删除</button>
                     <button class="acm-btn" id="btn-cancel-delete">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="rename-version-modal" class="acm-modal" style="display:none;">
+            <div class="acm-modal-overlay"></div>
+            <div class="acm-modal-content box acm-modal-sm">
+                <h3>重命名版本</h3>
+                <input type="text" class="acm-input acm-rename-input" id="rename-version-input" maxlength="50" placeholder="例如：AC 做法">
+                <div class="acm-modal-actions">
+                    <button class="acm-btn acm-btn-primary" id="btn-confirm-rename">保存</button>
+                    <button class="acm-btn" id="btn-cancel-rename">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="code-fullscreen" class="acm-fullscreen" style="display:none;">
+            <div class="acm-fullscreen-panel">
+                <div class="acm-fullscreen-header">
+                    <span class="acm-fullscreen-title" id="fullscreen-title"></span>
+                    <button class="acm-btn acm-btn-sm" id="btn-close-fullscreen">关闭</button>
+                </div>
+                <div class="acm-fullscreen-body">
+                    <pre class="acm-code-viewer acm-fullscreen-code" id="fullscreen-code"></pre>
                 </div>
             </div>
         </div>

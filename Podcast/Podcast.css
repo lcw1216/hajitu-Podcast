@@ -733,6 +733,183 @@ body.light-mode .menu a:hover { color: rgb(52, 120, 246); }
     color: rgb(80, 200, 100);
 }
 
+/* ========== ACM 判题状态与记分板 ========== */
+.acm-problem-card.ac {
+    border-color: rgba(80, 200, 100, 0.35);
+    background-color: rgba(80, 200, 100, 0.06);
+}
+
+.acm-problem-card.ac .acm-problem-letter {
+    color: rgb(80, 200, 100);
+}
+
+.acm-problem-card.attempted {
+    border-color: rgba(235, 110, 110, 0.28);
+}
+
+.acm-problem-card.attempted .acm-problem-letter {
+    color: rgb(235, 130, 130);
+}
+
+.acm-problem-status.status-ac,
+.acm-status-badge.status-ac {
+    background-color: rgba(80, 200, 100, 0.15);
+    color: rgb(80, 200, 100);
+}
+
+.acm-problem-status.status-wa,
+.acm-problem-status.status-tle,
+.acm-problem-status.status-re,
+.acm-status-badge.status-wa,
+.acm-status-badge.status-tle,
+.acm-status-badge.status-re {
+    background-color: rgba(235, 110, 110, 0.14);
+    color: rgb(235, 120, 120);
+}
+
+.acm-problem-status.status-ce,
+.acm-problem-status.status-pe,
+.acm-status-badge.status-ce,
+.acm-status-badge.status-pe {
+    background-color: rgba(200, 170, 90, 0.14);
+    color: rgb(210, 180, 100);
+}
+
+.acm-status-badge {
+    display: inline-block;
+    text-align: center;
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.25rem;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgb(150, 150, 150);
+}
+
+.acm-problem-penalty {
+    font-size: 0.62rem;
+    color: rgb(255, 190, 80);
+}
+
+.acm-problem-code {
+    font-size: 0.6rem;
+    color: rgb(140, 140, 140);
+}
+
+.acm-scoreboard {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.75rem;
+    padding: 0.7rem 1rem;
+    margin: 0.75rem 0 1rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.5rem;
+}
+
+.acm-scoreboard-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.acm-scoreboard-label {
+    font-size: 0.8rem;
+    color: rgb(150, 150, 150);
+}
+
+.acm-scoreboard-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.acm-scoreboard-value.acm-score-solved {
+    color: rgb(80, 200, 100);
+}
+
+.acm-scoreboard-value.acm-score-penalty {
+    color: rgb(255, 190, 80);
+}
+
+.acm-records-section {
+    margin-top: 1.25rem;
+}
+
+.acm-records-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.6rem;
+}
+
+.acm-record-list {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.5rem;
+    overflow-y: auto;
+    max-height: 24rem;
+}
+
+.acm-record-row {
+    display: grid;
+    grid-template-columns: 5.5rem 3rem 4rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.acm-record-row:last-child {
+    border-bottom: none;
+}
+
+.acm-record-time {
+    color: rgb(140, 140, 140);
+    font-variant-numeric: tabular-nums;
+}
+
+.acm-record-problem {
+    color: rgb(80, 140, 250);
+    font-weight: 600;
+}
+
+.acm-record-note {
+    color: rgb(160, 160, 160);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acm-record-note.acm-record-note-counted {
+    color: rgb(255, 190, 80);
+}
+
+.acm-record-form {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.acm-record-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    color: rgb(173, 173, 173);
+}
+
+.acm-record-field .acm-select {
+    width: 100%;
+}
+
+.acm-record-tip {
+    margin: 0;
+    font-size: 0.75rem;
+    color: rgb(140, 140, 140);
+    line-height: 1.5;
+}
+
 /* ========== 动态列表 ========== */
 .acm-activity-list {
     display: flex;
@@ -833,23 +1010,308 @@ body.light-mode .menu a:hover { color: rgb(52, 120, 246); }
     overflow-y: auto;
 }
 
-.acm-code-editor {
-    width: 100%;
+.acm-code-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.acm-code-lang {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: rgb(150, 150, 150);
+}
+
+.acm-code-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.acm-code-copy {
+    background-color: rgb(80, 140, 250);
+    border-color: rgb(80, 140, 250);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.35rem 0.9rem;
+    box-shadow: 0 2px 6px rgba(80, 140, 250, 0.35);
+}
+
+.acm-code-copy:hover {
+    background-color: rgb(56, 116, 232);
+    border-color: rgb(56, 116, 232);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(80, 140, 250, 0.45);
+}
+
+.acm-code-copy:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(80, 140, 250, 0.35);
+}
+
+.acm-code-editor-wrap {
+    position: relative;
     min-height: 20rem;
+}
+
+.acm-code-highlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
     padding: 1rem;
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 0.85rem;
     line-height: 1.5;
-    background-color: transparent;
+    white-space: pre;
+    overflow: hidden;
     color: rgb(220, 220, 220);
+    pointer-events: none;
+    tab-size: 4;
+}
+
+.acm-code-editor {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    min-height: 20rem;
+    max-height: 35rem;
+    margin: 0;
+    padding: 1rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre;
+    overflow: auto;
+    tab-size: 4;
+    background-color: transparent;
+    color: transparent;
+    caret-color: rgb(220, 220, 220);
     border: none;
     outline: none;
     resize: vertical;
 }
 
+.acm-code-editor::placeholder {
+    color: rgb(120, 120, 120);
+}
+
+.acm-code-editor::selection {
+    background-color: rgba(80, 140, 250, 0.3);
+}
+
+/* C++ 语法高亮配色 */
+.acm-code-highlight .tok-kw,
+.acm-code-viewer .tok-kw {
+    color: #c678dd;
+}
+
+.acm-code-highlight .tok-type,
+.acm-code-viewer .tok-type {
+    color: #e5c07b;
+}
+
+.acm-code-highlight .tok-fn,
+.acm-code-viewer .tok-fn {
+    color: #61afef;
+}
+
+.acm-code-highlight .tok-str,
+.acm-code-viewer .tok-str {
+    color: #98c379;
+}
+
+.acm-code-highlight .tok-num,
+.acm-code-viewer .tok-num {
+    color: #d19a66;
+}
+
+.acm-code-highlight .tok-com,
+.acm-code-viewer .tok-com {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.acm-code-highlight .tok-pre,
+.acm-code-viewer .tok-pre {
+    color: #e06c75;
+}
+
 .acm-code-actions {
     display: flex;
     gap: 0.5rem;
+}
+
+.acm-btn:disabled,
+.acm-btn:disabled:hover {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ========== 代码历史版本 ========== */
+.acm-version-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+
+.acm-version-label {
+    font-size: 0.8rem;
+    color: rgb(150, 150, 150);
+}
+
+.acm-version-select {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+    min-width: 12rem;
+}
+
+.acm-version-hint {
+    font-size: 0.75rem;
+    color: rgb(140, 140, 140);
+}
+
+.acm-rename-input {
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+/* ========== 轻提示 Toast ========== */
+.acm-toast-container {
+    position: fixed;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.acm-toast {
+    max-width: 22rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 3px solid rgb(80, 140, 250);
+    border-radius: 0.375rem;
+    background-color: rgba(38, 42, 52, 0.96);
+    color: rgb(230, 230, 230);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.acm-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.acm-toast-success {
+    border-left-color: rgb(80, 200, 120);
+}
+
+.acm-toast-error {
+    border-left-color: rgb(250, 80, 80);
+}
+
+body.light-mode .acm-toast {
+    background-color: #ffffff;
+    color: rgb(40, 40, 40);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* ========== 代码全屏查看 ========== */
+.acm-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2500;
+    display: flex;
+    padding: 1.25rem;
+    background-color: rgba(0, 0, 0, 0.75);
+}
+
+.acm-fullscreen-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(26, 29, 36);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.acm-fullscreen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.acm-fullscreen-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgb(210, 210, 210);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acm-fullscreen-body {
+    flex: 1;
+    overflow: auto;
+}
+
+.acm-fullscreen .acm-code-viewer {
+    width: max-content;
+    min-width: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    padding: 1rem 1.25rem;
+}
+
+body.light-mode .acm-fullscreen {
+    background-color: rgba(240, 240, 240, 0.85);
+}
+
+body.light-mode .acm-fullscreen-panel {
+    background-color: #ffffff;
+    border-color: #ccc;
+}
+
+body.light-mode .acm-fullscreen-header {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .acm-fullscreen-title {
+    color: rgb(60, 60, 60);
 }
 
 /* ========== 模态框 ========== */
@@ -931,6 +1393,18 @@ body.light-mode .acm-btn-primary {
 
 body.light-mode .acm-btn-primary:hover {
     background-color: rgb(52, 120, 246);
+    color: #fff;
+}
+
+body.light-mode .acm-code-copy {
+    background-color: rgb(52, 120, 246);
+    border-color: rgb(52, 120, 246);
+    color: #fff;
+}
+
+body.light-mode .acm-code-copy:hover {
+    background-color: rgb(34, 102, 228);
+    border-color: rgb(34, 102, 228);
     color: #fff;
 }
 
@@ -1025,6 +1499,85 @@ body.light-mode .acm-problem-card.submitted .acm-problem-status {
     color: rgb(40, 140, 60);
 }
 
+body.light-mode .acm-problem-card.ac {
+    background-color: rgba(50, 180, 80, 0.06);
+    border-color: rgba(50, 180, 80, 0.3);
+}
+
+body.light-mode .acm-problem-card.attempted {
+    border-color: rgba(210, 80, 80, 0.25);
+}
+
+body.light-mode .acm-status-badge {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgb(120, 120, 120);
+}
+
+body.light-mode .acm-status-badge.status-ac {
+    background-color: rgba(50, 180, 80, 0.12);
+    color: rgb(40, 140, 60);
+}
+
+body.light-mode .acm-status-badge.status-wa,
+body.light-mode .acm-status-badge.status-tle,
+body.light-mode .acm-status-badge.status-re {
+    background-color: rgba(210, 80, 80, 0.1);
+    color: rgb(190, 70, 70);
+}
+
+body.light-mode .acm-problem-penalty {
+    color: rgb(190, 120, 20);
+}
+
+body.light-mode .acm-problem-code {
+    color: rgb(130, 130, 130);
+}
+
+body.light-mode .acm-scoreboard {
+    background-color: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .acm-scoreboard-label {
+    color: rgb(120, 120, 120);
+}
+
+body.light-mode .acm-scoreboard-value {
+    color: rgb(30, 30, 30);
+}
+
+body.light-mode .acm-scoreboard-value.acm-score-solved {
+    color: rgb(40, 140, 60);
+}
+
+body.light-mode .acm-scoreboard-value.acm-score-penalty {
+    color: rgb(190, 120, 20);
+}
+
+body.light-mode .acm-record-list {
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .acm-record-row {
+    border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .acm-record-time {
+    color: rgb(130, 130, 130);
+}
+
+body.light-mode .acm-record-note {
+    color: rgb(110, 110, 110);
+}
+
+body.light-mode .acm-record-note.acm-record-note-counted {
+    color: rgb(190, 120, 20);
+}
+
+body.light-mode .acm-record-tip {
+    color: rgb(120, 120, 120);
+}
+
 body.light-mode .acm-activity-item {
     border-bottom-color: rgba(0, 0, 0, 0.05);
 }
@@ -1050,8 +1603,60 @@ body.light-mode .acm-code-viewer {
     color: rgb(40, 40, 40);
 }
 
-body.light-mode .acm-code-editor {
+body.light-mode .acm-code-toolbar {
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .acm-code-lang {
+    color: rgb(110, 110, 110);
+}
+
+body.light-mode .acm-code-highlight {
     color: rgb(40, 40, 40);
+}
+
+body.light-mode .acm-code-editor {
+    caret-color: rgb(40, 40, 40);
+}
+
+body.light-mode .acm-code-editor::placeholder {
+    color: rgb(150, 150, 150);
+}
+
+body.light-mode .acm-code-highlight .tok-kw,
+body.light-mode .acm-code-viewer .tok-kw {
+    color: #a626a4;
+}
+
+body.light-mode .acm-code-highlight .tok-type,
+body.light-mode .acm-code-viewer .tok-type {
+    color: #986801;
+}
+
+body.light-mode .acm-code-highlight .tok-fn,
+body.light-mode .acm-code-viewer .tok-fn {
+    color: #4078f2;
+}
+
+body.light-mode .acm-code-highlight .tok-str,
+body.light-mode .acm-code-viewer .tok-str {
+    color: #50a14f;
+}
+
+body.light-mode .acm-code-highlight .tok-num,
+body.light-mode .acm-code-viewer .tok-num {
+    color: #b76b01;
+}
+
+body.light-mode .acm-code-highlight .tok-com,
+body.light-mode .acm-code-viewer .tok-com {
+    color: #a0a1a7;
+}
+
+body.light-mode .acm-code-highlight .tok-pre,
+body.light-mode .acm-code-viewer .tok-pre {
+    color: #e45649;
 }
 
 body.light-mode .acm-modal-content p {
@@ -1071,6 +1676,16 @@ body.light-mode .acm-modal-content p {
 
     .acm-problem-grid {
         grid-template-columns: repeat(4, 1fr);
+    }
+
+    .acm-record-row {
+        grid-template-columns: 4.5rem 2.6rem 3.5rem minmax(0, 1fr) auto;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    .acm-records-header {
+        flex-wrap: wrap;
     }
 
     .acm-problem-title-row {
@@ -1172,9 +1787,14 @@ body.light-mode .acm-modal-content p {
     }
 
     .acm-code-viewer,
-    .acm-code-editor {
+    .acm-code-editor,
+    .acm-code-highlight {
         font-size: 0.75rem;
         padding: 0.75rem;
+    }
+
+    .acm-fullscreen {
+        padding: 0.5rem;
     }
 
     .acm-modal-content {

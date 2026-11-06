@@ -56,6 +56,18 @@ db.exec(`
     FOREIGN KEY (contest_id) REFERENCES contests(id)
   );
 
+  CREATE TABLE IF NOT EXISTS submission_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contest_id INTEGER NOT NULL,
+    problem TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    code TEXT DEFAULT '',
+    name TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contest_id) REFERENCES contests(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
   CREATE TABLE IF NOT EXISTS activities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contest_id INTEGER NOT NULL,
@@ -66,7 +78,153 @@ db.exec(`
     FOREIGN KEY (contest_id) REFERENCES contests(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS contest_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contest_id INTEGER NOT NULL,
+    problem TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (contest_id) REFERENCES contests(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_contest_records
+    ON contest_records(contest_id, problem, id);
 `);
+
+// ===== ACM 赛制判题记录与罚时计算 =====
+const PROBLEM_SET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+const RECORD_STATUSES = ['AC', 'WA', 'TLE', 'RE', 'CE', 'PE'];
+// 除 CE 外的非 AC 结果，每次计 20 分钟罚时
+const PENALTY_STATUSES = ['WA', 'TLE', 'RE', 'PE'];
+const PENALTY_MINUTES = 20;
+
+// SQLite 的 CURRENT_TIMESTAMP 为 UTC，且不带 Z，统一按 UTC 解析
+function parseUtcTime(value) {
+  if (!value) return null;
+  const str = String(value);
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(str)) return new Date(str);
+  return new Date(str.replace(' ', 'T') + 'Z');
+}
+
+function computeScoreboard(contestId) {
+  const contest = db.prepare('SELECT id, created_at FROM contests WHERE id = ?').get(contestId);
+  if (!contest) return null;
+
+  const records = db.prepare(`
+    SELECT r.id, r.problem, r.status, r.created_at, r.created_by, u.username AS creator_name
+    FROM contest_records r LEFT JOIN users u ON u.id = r.created_by
+    WHERE r.contest_id = ?
+    ORDER BY r.created_at ASC, r.id ASC
+  `).all(contestId);
+
+  const startTime = parseUtcTime(contest.created_at);
+  const problems = [];
+  const recordViews = [];
+  let solvedCount = 0;
+  let totalPenalty = 0;
+
+  for (const problem of PROBLEM_SET) {
+    const list = records.filter(r => r.problem === problem);
+    const firstAcIndex = list.findIndex(r => r.status === 'AC');
+    const countedBeforeAc = firstAcIndex < 0
+      ? 0
+      : list.slice(0, firstAcIndex).filter(r => PENALTY_STATUSES.indexOf(r.status) >= 0).length;
+
+    let penalty = 0;
+    let acMinutes = 0;
+
+    const enriched = list.map((r, idx) => {
+      let counted = false;
+      let note;
+      if (firstAcIndex < 0) {
+        note = r.status === 'CE' ? 'CE 不计罚' : '未通过，暂不计罚';
+      } else if (idx < firstAcIndex) {
+        counted = PENALTY_STATUSES.indexOf(r.status) >= 0;
+        note = counted ? '计罚 +' + PENALTY_MINUTES + ' 分钟' : 'CE 不计罚';
+      } else if (idx === firstAcIndex) {
+        counted = true;
+        note = '计分';
+      } else {
+        note = 'AC 后提交，不计罚';
+      }
+      return {
+        id: r.id,
+        problem: r.problem,
+        status: r.status,
+        created_at: r.created_at,
+        creator_name: r.creator_name || '未知',
+        counted: counted,
+        note: note
+      };
+    });
+
+    if (firstAcIndex >= 0) {
+      const acTime = parseUtcTime(list[firstAcIndex].created_at);
+      acMinutes = startTime && acTime
+        ? Math.max(0, Math.floor((acTime.getTime() - startTime.getTime()) / 60000))
+        : 0;
+      penalty = acMinutes + countedBeforeAc * PENALTY_MINUTES;
+      enriched[firstAcIndex].penalty = penalty;
+      solvedCount += 1;
+      totalPenalty += penalty;
+    }
+
+    const last = list.length ? list[list.length - 1] : null;
+    problems.push({
+      problem: problem,
+      solved: firstAcIndex >= 0,
+      status: firstAcIndex >= 0 ? 'AC' : (last ? last.status : null),
+      attempts: list.length,
+      waCount: countedBeforeAc,
+      acMinutes: acMinutes,
+      penalty: penalty
+    });
+
+    for (const view of enriched) recordViews.push(view);
+  }
+
+  recordViews.sort((a, b) => parseUtcTime(a.created_at) - parseUtcTime(b.created_at));
+
+  return {
+    contestId: contest.id,
+    startAt: contest.created_at,
+    solvedCount: solvedCount,
+    totalProblems: PROBLEM_SET.length,
+    totalPenalty: totalPenalty,
+    problems: problems,
+    records: recordViews
+  };
+}
+
+// 旧表缺少 name 列时补充（幂等）
+const versionColumns = db.prepare('PRAGMA table_info(submission_versions)').all();
+if (!versionColumns.some(col => col.name === 'name')) {
+  db.exec("ALTER TABLE submission_versions ADD COLUMN name TEXT DEFAULT ''");
+}
+
+// 为历史提交补齐初始版本记录（幂等）
+const existingSubmissions = db.prepare(
+  'SELECT contest_id, problem, user_id, code, updated_at FROM submissions'
+).all();
+const countVersions = db.prepare(
+  'SELECT COUNT(*) AS n FROM submission_versions WHERE contest_id = ? AND problem = ? AND user_id = ?'
+);
+const insertVersion = db.prepare(
+  'INSERT INTO submission_versions (contest_id, problem, user_id, code, created_at) VALUES (?, ?, ?, ?, ?)'
+);
+db.transaction(() => {
+  for (const sub of existingSubmissions) {
+    if (countVersions.get(sub.contest_id, sub.problem, sub.user_id).n === 0) {
+      insertVersion.run(
+        sub.contest_id, sub.problem, sub.user_id, sub.code || '',
+        sub.updated_at || new Date().toISOString()
+      );
+    }
+  }
+})();
 
 function hashPassword(password, salt) {
   return crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
@@ -174,17 +332,15 @@ app.post('/api/contests', requireAuth, (req, res) => {
 
 app.delete('/api/contests/:id', requireAuth, (req, res) => {
   const contestId = req.params.id;
-  const userId = req.session.userId;
 
   const contest = db.prepare('SELECT * FROM contests WHERE id = ?').get(contestId);
   if (!contest) {
     return res.status(404).json({ error: '比赛不存在' });
   }
-  if (contest.creator_id !== userId) {
-    return res.status(403).json({ error: '只有创建者可以删除比赛' });
-  }
 
   db.prepare('DELETE FROM activities WHERE contest_id = ?').run(contestId);
+  db.prepare('DELETE FROM contest_records WHERE contest_id = ?').run(contestId);
+  db.prepare('DELETE FROM submission_versions WHERE contest_id = ?').run(contestId);
   db.prepare('DELETE FROM submissions WHERE contest_id = ?').run(contestId);
   db.prepare('DELETE FROM contests WHERE id = ?').run(contestId);
 
@@ -227,14 +383,95 @@ app.get('/api/contests/:id/submissions', (req, res) => {
   res.json({ submissions });
 });
 
+app.get('/api/contests/:id/submissions/:problem/versions', (req, res) => {
+  const problem = req.params.problem.toUpperCase();
+  const owner = req.query.owner;
+
+  if (!/^[A-N]$/.test(problem) || !owner) {
+    return res.status(400).json({ error: '缺少题目或代码作者参数' });
+  }
+
+  const ownerUser = db.prepare('SELECT id FROM users WHERE username = ?').get(owner);
+  if (!ownerUser) {
+    return res.status(404).json({ error: '代码作者不存在' });
+  }
+
+  const versions = db.prepare(`
+    SELECT id, code, name, created_at FROM submission_versions
+    WHERE contest_id = ? AND problem = ? AND user_id = ?
+    ORDER BY created_at ASC, id ASC
+  `).all(req.params.id, problem, ownerUser.id);
+
+  res.json({ versions });
+});
+
+app.put('/api/submission-versions/:id', requireAuth, (req, res) => {
+  const version = db.prepare('SELECT * FROM submission_versions WHERE id = ?').get(req.params.id);
+  if (!version) {
+    return res.status(404).json({ error: '版本不存在' });
+  }
+  if (version.user_id !== req.session.userId) {
+    return res.status(403).json({ error: '只能重命名自己的版本' });
+  }
+
+  const name = String((req.body || {}).name || '').trim();
+  if (name.length > 50) {
+    return res.status(400).json({ error: '版本名称最多 50 字' });
+  }
+
+  db.prepare('UPDATE submission_versions SET name = ? WHERE id = ?').run(name, version.id);
+  res.json({ success: true });
+});
+
+app.delete('/api/submission-versions/:id', requireAuth, (req, res) => {
+  const version = db.prepare('SELECT * FROM submission_versions WHERE id = ?').get(req.params.id);
+  if (!version) {
+    return res.status(404).json({ error: '版本不存在' });
+  }
+  if (version.user_id !== req.session.userId) {
+    return res.status(403).json({ error: '只能删除自己的版本' });
+  }
+
+  db.prepare('DELETE FROM submission_versions WHERE id = ?').run(version.id);
+
+  const latest = db.prepare(`
+    SELECT code FROM submission_versions
+    WHERE contest_id = ? AND problem = ? AND user_id = ?
+    ORDER BY created_at DESC, id DESC LIMIT 1
+  `).get(version.contest_id, version.problem, version.user_id);
+
+  if (latest) {
+    db.prepare(`
+      UPDATE submissions SET code = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = ? AND contest_id = ? AND problem = ?
+    `).run(latest.code || '', version.user_id, version.contest_id, version.problem);
+  } else {
+    db.prepare(`
+      DELETE FROM submissions WHERE user_id = ? AND contest_id = ? AND problem = ?
+    `).run(version.user_id, version.contest_id, version.problem);
+  }
+
+  res.json({ success: true });
+});
+
 app.put('/api/contests/:id/submissions/:problem', requireAuth, (req, res) => {
   const contestId = req.params.id;
   const problem = req.params.problem.toUpperCase();
   const userId = req.session.userId;
   const { code } = req.body;
 
-  if (!/^[A-L]$/.test(problem)) {
-    return res.status(400).json({ error: '题目必须是 A-L' });
+  if (!/^[A-N]$/.test(problem)) {
+    return res.status(400).json({ error: '题目必须是 A-N' });
+  }
+
+  const latestVersion = db.prepare(`
+    SELECT code FROM submission_versions
+    WHERE user_id = ? AND contest_id = ? AND problem = ?
+    ORDER BY created_at DESC, id DESC LIMIT 1
+  `).get(userId, contestId, problem);
+
+  if (latestVersion && (latestVersion.code || '') === (code || '')) {
+    return res.status(400).json({ error: '代码与上一版本相同，无需重复提交' });
   }
 
   const existing = db.prepare(
@@ -252,6 +489,10 @@ app.put('/api/contests/:id/submissions/:problem', requireAuth, (req, res) => {
   }
 
   db.prepare(
+    'INSERT INTO submission_versions (contest_id, problem, user_id, code) VALUES (?, ?, ?, ?)'
+  ).run(contestId, problem, userId, code || '');
+
+  db.prepare(
     'INSERT INTO activities (contest_id, user_id, problem, action) VALUES (?, ?, ?, ?)'
   ).run(contestId, userId, problem, 'update');
 
@@ -263,12 +504,16 @@ app.delete('/api/contests/:id/submissions/:problem', requireAuth, (req, res) => 
   const problem = req.params.problem.toUpperCase();
   const userId = req.session.userId;
 
-  if (!/^[A-L]$/.test(problem)) {
-    return res.status(400).json({ error: '题目必须是 A-L' });
+  if (!/^[A-N]$/.test(problem)) {
+    return res.status(400).json({ error: '题目必须是 A-N' });
   }
 
   db.prepare(
     'DELETE FROM submissions WHERE user_id = ? AND contest_id = ? AND problem = ?'
+  ).run(userId, contestId, problem);
+
+  db.prepare(
+    'DELETE FROM submission_versions WHERE user_id = ? AND contest_id = ? AND problem = ?'
   ).run(userId, contestId, problem);
 
   db.prepare(
@@ -291,6 +536,48 @@ app.get('/api/contests/:id/activities', (req, res) => {
   `).all(contestId, limit);
 
   res.json({ activities });
+});
+
+app.get('/api/contests/:id/scoreboard', (req, res) => {
+  const data = computeScoreboard(req.params.id);
+  if (!data) {
+    return res.status(404).json({ error: '比赛不存在' });
+  }
+  res.json(data);
+});
+
+app.post('/api/contests/:id/records', requireAuth, (req, res) => {
+  const contestId = req.params.id;
+  const problem = String((req.body || {}).problem || '').toUpperCase();
+  const status = String((req.body || {}).status || '').toUpperCase();
+
+  if (PROBLEM_SET.indexOf(problem) < 0) {
+    return res.status(400).json({ error: '题目必须是 A-N' });
+  }
+  if (RECORD_STATUSES.indexOf(status) < 0) {
+    return res.status(400).json({ error: '判题结果无效' });
+  }
+
+  const contest = db.prepare('SELECT id FROM contests WHERE id = ?').get(contestId);
+  if (!contest) {
+    return res.status(404).json({ error: '比赛不存在' });
+  }
+
+  db.prepare(
+    'INSERT INTO contest_records (contest_id, problem, status, created_by) VALUES (?, ?, ?, ?)'
+  ).run(contestId, problem, status, req.session.userId);
+
+  res.json({ success: true });
+});
+
+app.delete('/api/contests/:id/records/:recordId', requireAuth, (req, res) => {
+  const record = db.prepare('SELECT * FROM contest_records WHERE id = ?').get(req.params.recordId);
+  if (!record || String(record.contest_id) !== String(req.params.id)) {
+    return res.status(404).json({ error: '记录不存在' });
+  }
+
+  db.prepare('DELETE FROM contest_records WHERE id = ?').run(record.id);
+  res.json({ success: true });
 });
 
 app.get('/api/users', (req, res) => {
