@@ -168,6 +168,9 @@ function computeScoreboard(contestId) {
         : 0;
       penalty = acMinutes + countedBeforeAc * PENALTY_MINUTES;
       enriched[firstAcIndex].penalty = penalty;
+      enriched[firstAcIndex].note = '计分 · 赛时 ' + acMinutes + ' 分钟'
+        + (countedBeforeAc ? ' + ' + countedBeforeAc + ' 次非 AC ×' + PENALTY_MINUTES : '')
+        + ' → 罚时 ' + penalty + ' 分钟';
       solvedCount += 1;
       totalPenalty += penalty;
     }
