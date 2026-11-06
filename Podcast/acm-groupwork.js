@@ -15,6 +15,8 @@
   var currentScoreboard = null;
   var lastSubmittedSet = {};
   var lastScoreboardKey = '';
+  var scoreTimer = null;
+  var timerRemainingSeconds = 0;
 
   var CPP_KEYWORDS = {};
   ('alignas alignof asm auto bool break case catch char class const constexpr const_cast continue '
@@ -100,6 +102,14 @@
     if (activityTimer) {
       clearInterval(activityTimer);
       activityTimer = null;
+    }
+    stopScoreTimer();
+  }
+
+  function stopScoreTimer() {
+    if (scoreTimer) {
+      clearInterval(scoreTimer);
+      scoreTimer = null;
     }
   }
 
@@ -344,6 +354,7 @@
       if (e.target === this) closeRenameVersion();
     });
     $('btn-add-record').addEventListener('click', openAddRecordModal);
+    $('btn-start-contest').addEventListener('click', startContest);
     $('btn-confirm-record').addEventListener('click', addRecord);
     $('btn-cancel-record').addEventListener('click', closeAddRecordModal);
     $('add-record-modal').addEventListener('click', function(e) {
@@ -650,7 +661,16 @@
       if (currentContestId !== String(contestId)) return;
       currentScoreboard = data;
 
-      var key = JSON.stringify(data);
+      // 计时秒数每次都变，不参与比对，避免每轮轮询重绘题卡
+      var key = JSON.stringify({
+        startAt: data.startAt,
+        endsAt: data.endsAt,
+        phase: data.phase,
+        solvedCount: data.solvedCount,
+        totalPenalty: data.totalPenalty,
+        problems: data.problems,
+        records: data.records
+      });
       if (key === lastScoreboardKey) return;
       lastScoreboardKey = key;
 
@@ -664,6 +684,75 @@
     $('score-solved').textContent = data.solvedCount + ' / ' + data.totalProblems;
     $('score-penalty').textContent = formatPenalty(data.totalPenalty);
     $('score-records').textContent = (data.records ? data.records.length : 0) + ' 条';
+    renderScoreTimer(data);
+  }
+
+  function formatClock(seconds) {
+    var total = Math.max(0, seconds || 0);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    function pad(n) { return n < 10 ? '0' + n : String(n); }
+    return pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+
+  function renderScoreTimer(data) {
+    var startBtn = $('btn-start-contest');
+    var addBtn = $('btn-add-record');
+    var timerText = $('score-timer');
+    var durationSeconds = (data.durationMinutes || 300) * 60;
+
+    if (data.phase === 'not_started') {
+      timerText.textContent = '未开始';
+      startBtn.style.display = '';
+      addBtn.disabled = true;
+      addBtn.title = '请先开始比赛';
+    } else if (data.phase === 'ended') {
+      timerText.textContent = '已结束（' + (data.durationMinutes || 300) / 60 + ' 小时）';
+      startBtn.style.display = 'none';
+      addBtn.disabled = true;
+      addBtn.title = '比赛已结束';
+    } else {
+      timerRemainingSeconds = data.remainingSeconds || 0;
+      timerText.textContent = '剩余 ' + formatClock(timerRemainingSeconds)
+        + ' / 已用 ' + formatClock(durationSeconds - timerRemainingSeconds);
+      startBtn.style.display = 'none';
+      addBtn.disabled = false;
+      addBtn.title = '';
+      stopScoreTimer();
+      scoreTimer = setInterval(function() {
+        if (timerRemainingSeconds > 0) {
+          timerRemainingSeconds -= 1;
+          timerText.textContent = '剩余 ' + formatClock(timerRemainingSeconds)
+            + ' / 已用 ' + formatClock(durationSeconds - timerRemainingSeconds);
+        }
+        if (timerRemainingSeconds <= 0) {
+          stopScoreTimer();
+          timerText.textContent = '已结束（' + (data.durationMinutes || 300) / 60 + ' 小时）';
+          addBtn.disabled = true;
+          addBtn.title = '比赛已结束';
+        }
+      }, 1000);
+    }
+
+    if (data.phase !== 'running') {
+      stopScoreTimer();
+    }
+  }
+
+  function startContest() {
+    if (!currentContestId) return;
+    var contestId = currentContestId;
+
+    api('/api/contests/' + contestId + '/start', { method: 'POST' })
+      .then(function() {
+        showToast('比赛已开始，计时 5 小时', 'success');
+        lastScoreboardKey = '';
+        loadScoreboard(contestId);
+      })
+      .catch(function(err) {
+        showToast('开始失败：' + err.message, 'error');
+      });
   }
 
   function renderRecords(records) {

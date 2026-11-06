@@ -812,6 +812,15 @@ body.light-mode .menu a:hover { color: rgb(52, 120, 246); }
     gap: 0.45rem;
 }
 
+.acm-scoreboard-timer {
+    align-items: center;
+}
+
+.acm-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .acm-scoreboard-label {
     font-size: 0.8rem;
     color: rgb(150, 150, 150);

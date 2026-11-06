@@ -100,6 +100,8 @@ const RECORD_STATUSES = ['AC', 'WA', 'TLE', 'RE', 'CE', 'PE'];
 // 除 CE 外的非 AC 结果，每次计 20 分钟罚时
 const PENALTY_STATUSES = ['WA', 'TLE', 'RE', 'PE'];
 const PENALTY_MINUTES = 20;
+// 比赛时长：5 小时
+const CONTEST_DURATION_MINUTES = 300;
 
 // SQLite 的 CURRENT_TIMESTAMP 为 UTC，且不带 Z，统一按 UTC 解析
 function parseUtcTime(value) {
@@ -110,7 +112,7 @@ function parseUtcTime(value) {
 }
 
 function computeScoreboard(contestId) {
-  const contest = db.prepare('SELECT id, created_at FROM contests WHERE id = ?').get(contestId);
+  const contest = db.prepare('SELECT id, created_at, started_at FROM contests WHERE id = ?').get(contestId);
   if (!contest) return null;
 
   const records = db.prepare(`
@@ -120,7 +122,22 @@ function computeScoreboard(contestId) {
     ORDER BY r.created_at ASC, r.id ASC
   `).all(contestId);
 
-  const startTime = parseUtcTime(contest.created_at);
+  const startTime = parseUtcTime(contest.started_at);
+  const endTime = startTime
+    ? new Date(startTime.getTime() + CONTEST_DURATION_MINUTES * 60000)
+    : null;
+  const now = Date.now();
+
+  let phase = 'not_started';
+  let remainingSeconds = 0;
+  if (startTime) {
+    if (now >= endTime.getTime()) {
+      phase = 'ended';
+    } else {
+      phase = 'running';
+      remainingSeconds = Math.max(0, Math.floor((endTime.getTime() - now) / 1000));
+    }
+  }
   const problems = [];
   const recordViews = [];
   let solvedCount = 0;
@@ -164,9 +181,9 @@ function computeScoreboard(contestId) {
     if (firstAcIndex >= 0) {
       const acTime = parseUtcTime(list[firstAcIndex].created_at);
       acMinutes = startTime && acTime
-        ? Math.max(0, Math.floor((acTime.getTime() - startTime.getTime()) / 60000))
+        ? Math.min(CONTEST_DURATION_MINUTES, Math.max(0, Math.floor((acTime.getTime() - startTime.getTime()) / 60000)))
         : 0;
-      penalty = acMinutes + countedBeforeAc * PENALTY_MINUTES;
+      penalty = startTime ? acMinutes + countedBeforeAc * PENALTY_MINUTES : 0;
       enriched[firstAcIndex].penalty = penalty;
       enriched[firstAcIndex].note = '计分 · 赛时 ' + acMinutes + ' 分钟'
         + (countedBeforeAc ? ' + ' + countedBeforeAc + ' 次非 AC ×' + PENALTY_MINUTES : '')
@@ -193,7 +210,12 @@ function computeScoreboard(contestId) {
 
   return {
     contestId: contest.id,
-    startAt: contest.created_at,
+    startAt: contest.started_at,
+    endsAt: endTime ? endTime.toISOString() : null,
+    durationMinutes: CONTEST_DURATION_MINUTES,
+    phase: phase,
+    remainingSeconds: remainingSeconds,
+    serverNow: new Date().toISOString(),
     solvedCount: solvedCount,
     totalProblems: PROBLEM_SET.length,
     totalPenalty: totalPenalty,
@@ -206,6 +228,12 @@ function computeScoreboard(contestId) {
 const versionColumns = db.prepare('PRAGMA table_info(submission_versions)').all();
 if (!versionColumns.some(col => col.name === 'name')) {
   db.exec("ALTER TABLE submission_versions ADD COLUMN name TEXT DEFAULT ''");
+}
+
+// 比赛开始时间（旧比赛保持未开始状态，不影响原有数据）
+const contestColumns = db.prepare('PRAGMA table_info(contests)').all();
+if (!contestColumns.some(col => col.name === 'started_at')) {
+  db.exec('ALTER TABLE contests ADD COLUMN started_at DATETIME');
 }
 
 // 为历史提交补齐初始版本记录（幂等）
@@ -541,6 +569,19 @@ app.get('/api/contests/:id/activities', (req, res) => {
   res.json({ activities });
 });
 
+app.post('/api/contests/:id/start', requireAuth, (req, res) => {
+  const contest = db.prepare('SELECT id, started_at FROM contests WHERE id = ?').get(req.params.id);
+  if (!contest) {
+    return res.status(404).json({ error: '比赛不存在' });
+  }
+  if (contest.started_at) {
+    return res.status(400).json({ error: '比赛已经开始' });
+  }
+
+  db.prepare('UPDATE contests SET started_at = CURRENT_TIMESTAMP WHERE id = ?').run(contest.id);
+  res.json({ success: true });
+});
+
 app.get('/api/contests/:id/scoreboard', (req, res) => {
   const data = computeScoreboard(req.params.id);
   if (!data) {
@@ -561,9 +602,16 @@ app.post('/api/contests/:id/records', requireAuth, (req, res) => {
     return res.status(400).json({ error: '判题结果无效' });
   }
 
-  const contest = db.prepare('SELECT id FROM contests WHERE id = ?').get(contestId);
+  const contest = db.prepare('SELECT id, started_at FROM contests WHERE id = ?').get(contestId);
   if (!contest) {
     return res.status(404).json({ error: '比赛不存在' });
+  }
+  if (!contest.started_at) {
+    return res.status(400).json({ error: '比赛尚未开始，请先开始比赛' });
+  }
+  const startTime = parseUtcTime(contest.started_at);
+  if (Date.now() >= startTime.getTime() + CONTEST_DURATION_MINUTES * 60000) {
+    return res.status(400).json({ error: '比赛已结束，无法添加记录' });
   }
 
   db.prepare(
