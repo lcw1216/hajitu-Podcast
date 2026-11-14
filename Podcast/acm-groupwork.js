@@ -17,6 +17,7 @@
   var lastScoreboardKey = '';
   var scoreTimer = null;
   var timerRemainingSeconds = 0;
+  var machineUser = null;
 
   var CPP_KEYWORDS = {};
   ('alignas alignof asm auto bool break case catch char class const constexpr const_cast continue '
@@ -545,13 +546,69 @@
         viewingUser = currentUser.username;
       }
 
+      renderMachineButtons(users);
+      loadMachineStatus();
+
       loadContestData(contestId);
     });
 
     activityTimer = setInterval(function() {
       loadActivities(contestId);
       loadScoreboard(contestId);
+      loadMachineStatus();
     }, POLL_INTERVAL);
+  }
+
+  // ==================== 机器占用 ====================
+  function renderMachineButtons(users) {
+    var wrap = $('machine-buttons');
+    if (!wrap) return;
+
+    wrap.innerHTML = '';
+    for (var i = 0; i < users.length; i++) {
+      var btn = document.createElement('button');
+      btn.className = 'acm-btn acm-machine-btn';
+      btn.setAttribute('data-user', users[i].username);
+      btn.textContent = users[i].username;
+      btn.addEventListener('click', onMachineClick);
+      wrap.appendChild(btn);
+    }
+    updateMachineButtons();
+  }
+
+  function updateMachineButtons() {
+    var wrap = $('machine-buttons');
+    if (!wrap) return;
+
+    var btns = wrap.querySelectorAll('.acm-machine-btn');
+    for (var i = 0; i < btns.length; i++) {
+      var name = btns[i].getAttribute('data-user');
+      var active = machineUser === name;
+      btns[i].classList.toggle('acm-machine-active', active);
+      btns[i].textContent = active ? name + ' · 占机中' : name;
+    }
+  }
+
+  function onMachineClick() {
+    var name = this.getAttribute('data-user');
+    api('/api/machine-status', { method: 'POST', body: { username: name } })
+      .then(function(data) {
+        machineUser = data.user ? data.user.username : null;
+        updateMachineButtons();
+        showToast(machineUser ? machineUser + ' 开始占机' : '已释放机器', 'success');
+      })
+      .catch(function(err) {
+        showToast('操作失败：' + err.message, 'error');
+      });
+  }
+
+  function loadMachineStatus() {
+    api('/api/machine-status').then(function(data) {
+      var name = data.user ? data.user.username : null;
+      if (name === machineUser) return;
+      machineUser = name;
+      updateMachineButtons();
+    }).catch(function() {});
   }
 
   function onContestBranchChange() {

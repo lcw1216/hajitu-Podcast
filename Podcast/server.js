@@ -68,6 +68,13 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS machine_status (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    user_id INTEGER,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+
   CREATE TABLE IF NOT EXISTS activities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contest_id INTEGER NOT NULL,
@@ -93,6 +100,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_contest_records
     ON contest_records(contest_id, problem, id);
 `);
+
+// 机器占用状态只有一行
+db.prepare('INSERT OR IGNORE INTO machine_status (id, user_id) VALUES (1, NULL)').run();
 
 // ===== ACM 赛制判题记录与罚时计算 =====
 const PROBLEM_SET = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
@@ -634,6 +644,39 @@ app.delete('/api/contests/:id/records/:recordId', requireAuth, (req, res) => {
 app.get('/api/users', (req, res) => {
   const users = db.prepare('SELECT id, username FROM users ORDER BY username').all();
   res.json({ users });
+});
+
+// ===== 机器占用 =====
+app.get('/api/machine-status', (req, res) => {
+  const row = db.prepare(`
+    SELECT u.username FROM machine_status m
+    LEFT JOIN users u ON u.id = m.user_id
+    WHERE m.id = 1
+  `).get();
+
+  res.json({ user: row && row.username ? { username: row.username } : null });
+});
+
+app.post('/api/machine-status', requireAuth, (req, res) => {
+  const username = String((req.body || {}).username || '').trim();
+  const current = db.prepare('SELECT user_id FROM machine_status WHERE id = 1').get();
+
+  const target = username
+    ? db.prepare('SELECT id, username FROM users WHERE username = ?').get(username)
+    : null;
+
+  if (username && !target) {
+    return res.status(404).json({ error: '用户不存在' });
+  }
+
+  // 点击当前占机者视为释放，其余情况切换给被点击的人
+  const nextId = (!target || (current && current.user_id === target.id)) ? null : target.id;
+
+  db.prepare(
+    'UPDATE machine_status SET user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1'
+  ).run(nextId);
+
+  res.json({ user: nextId ? { username: target.username } : null });
 });
 
 
